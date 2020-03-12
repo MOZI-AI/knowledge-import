@@ -50,7 +50,7 @@ max_len = max(len(pathway_list), len(pathway_relation))
 
 print("Started importing")
 
-script = "https://github.com/MOZI-AI/agi-bio/blob/master/knowledge-import/SNET/reactome_pathway.py"
+script = "https://github.com/MOZI-AI/knowledge-import/reactome_pathway.py"
 pathways = pathway_relation['parent'].values + pathway_relation['child'].values
 if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
     os.makedirs('dataset')

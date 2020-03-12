@@ -33,6 +33,6 @@ with open("dataset/uniprot2GO.scm", 'w') as f:
             f.write(inherit('(MoleculeNode "'+ 'Uniprot:'+i.split('\t')[1] + '")', '(ConceptNode "' + i.split('\t')[4] + '")'))
             prot.append(i.split('\t')[1])
             go.append(i.split('\t')[4])
-script = "https://github.com/MOZI-AI/agi-bio/blob/master/knowledge-import/SNET/uniprot2GO.py"
+script = "https://github.com/MOZI-AI/knowledge-import/uniprot2GO.py"
 metadata.update_meta("Uniprot-GO:latest", dataset_url,script,prot=len(set(prot)), goterms={"go-terms":len(set(go))})
 print("Done, check dataset/uniprot2GO.scm")

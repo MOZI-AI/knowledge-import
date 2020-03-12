@@ -16,7 +16,12 @@ from io import BytesIO
 import os
 import sys
 import metadata
-import utils
+
+def checkdisc(diction, key, value):
+  try:
+    diction.setdefault(key,[]).append(value)
+  except KeyError:
+    return "key error"
 
 def import_data_from_web(version):
   if version:
@@ -70,9 +75,9 @@ def import_data(data, source, version):
           else:
             interactors = node2 +':'+ node1
           if interactors in pairs.keys():
-            utils.checkdisc(pairs, interactors, '\t\t\t(ConceptNode "' + 'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + str(pubmed) + '")')
+            checkdisc(pairs, interactors, '\t\t\t(ConceptNode "' + 'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + str(pubmed) + '")')
           else:
-            utils.checkdisc(pairs, interactors, '\t\t\t(ConceptNode "' + 'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + str(pubmed) + '")')
+            checkdisc(pairs, interactors, '\t\t\t(ConceptNode "' + 'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + str(pubmed) + '")')
             if not node1 in entrez:
               f.write('(EvaluationLink\n'+ 
                             '\t(PredicateNode "has_entrez_id")\n'+
