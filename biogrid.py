@@ -44,7 +44,7 @@ def import_data_from_web(version):
       print("Error processing the latest version")
 
   source = 'https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-'+ version +'/BIOGRID-ORGANISM-'+ version +'.tab2.zip'
-  import_data(data, source, version)
+  import_data(data, source, version, gene_level=True)
   data.to_csv("raw_data/"+dataset, sep='\t',index=False)
 
 def import_local_data(file):
@@ -53,15 +53,23 @@ def import_local_data(file):
     try:
       data = pd.read_csv(path, low_memory=False, delimiter='\t')
       version = file.split('-')[-1].replace(".tab2.txt", "")
-      import_data(data, path, version)
+      import_data(data, path, version, gene_level=True)
     except Exception as e:
       print(e)    
 
-def import_data(data, source, version):
+def import_data(data, source, version, gene_level=False):
+  # Set the gene_level to True to get only the GGI without extra entrez and pubmedID info
+
   data = data[['Entrez Gene Interactor A',	'Entrez Gene Interactor B', 'Official Symbol Interactor A', 'Official Symbol Interactor B','Pubmed ID']]  
   print("started importing")
   if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
     os.makedirs('dataset')
+    
+  if gene_level:
+    if not os.path.exists(os.path.join(os.getcwd(), 'gene-level')):
+      os.makedirs('gene-level') 
+    g = open('gene-level/biogrid_gene_gene_'+version+'.scm','w')
+
   with open('dataset/biogrid_gene_gene_'+version+'.scm','w') as f:
       pairs = {}
       entrez = []
@@ -106,6 +114,13 @@ def import_data(data, source, version):
                               '\t\t\t\t(GeneNode "'+ str(p).split(':')[1] +'")))\n' +
                         '\t\t(ListLink \n'+
                         "\n".join(set(pairs[p]))+ ')))\n')
+        if gene_level:
+          g.write('(EvaluationLink\n'+ 
+                    '\t(PredicateNode "interacts_with")\n'+
+                    '\t(SetLink \n'+
+                      '\t\t(GeneNode "' + str(p).split(':')[0] +'")\n'+
+                      '\t\t(GeneNode "'+ str(p).split(':')[1] +'")))\n')
+
         number_of_genes.append(str(p).split(':')[0])
         number_of_genes.append(str(p).split(':')[1])
   

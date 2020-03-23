@@ -141,9 +141,6 @@ def import_dataset(dataset, delim):
 						else:
 							# non_exist.append(gene_sym + '\t' +str(db_id))
 							continue
-				# If a gene symbol is not one word, collect all gene symbols of the same db_id
-				# and find the common word in the list (which is the gene symbol in most cases)
-				# e.g "proKLK5" "KLK5" "propeptide KLK5"
 				if not gene.isdigit() and not len(gene) == 1 and not gene in ["", " "]:
 					gene = gene.strip()
 					f.write("(ContextLink\n")

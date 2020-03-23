@@ -25,10 +25,14 @@ lines_annotate = lines[line_no[0] -1 : len(lines)]
 def memberLink(gene, goID, qualifier):
     if qualifier == 'NOT':
         f_annotation.write("(MemberLink (stv 0.0 1.0)\n")
+        g_annotation.write("(MemberLink (stv 0.0 1.0)\n")
     else:
         f_annotation.write("(MemberLink\n")
+        g_annotation.write("(MemberLink\n")
     f_annotation.write("\t(GeneNode \"" + gene.upper().strip() + "\")\n")
     f_annotation.write("\t(ConceptNode \"GO:" + goID + "\"))\n")
+    g_annotation.write("\t(GeneNode \"" + gene.upper().strip() + "\")\n")
+    g_annotation.write("\t(ConceptNode \"GO:" + goID + "\"))\n")
 
 def evaLink(gene , name, qualifier):
     if qualifier == 'NOT' :
@@ -44,7 +48,12 @@ def evaLink(gene , name, qualifier):
 
 
 #open file to write
+if not os.path.exists(os.path.join(os.getcwd(), 'gene-level')):
+      os.makedirs('gene-level')
+if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
+      os.makedirs('dataset') 
 f_annotation = open('dataset/GO_annotation.scm', 'a')
+g_annotation = open('gene-level/GO_annotation.scm', 'a')
 
 #add GOC Validation Date
 f_annotation.write(";"+((lines[0]).split('!')[1]).split('$')[0]+ "\n")
@@ -64,8 +73,9 @@ for l in lines_annotate:
         genes.append(db_object_symbol)
         evaLink(db_object_symbol,gene_name, qualifier)
 f_annotation.close()
+g_annotation.close()
 script = "https://github.com/MOZI-AI/knowledge-import/GO_Annotation_scm.py"
 metadata.update_meta("GO_Annotation:latest", source,script,genes=len(genes), goterms={"go-terms":len(set(go))})
-print("Done, check dataset/GO_annotation.scm")
+print("Done, check dataset/GO_annotation.scm and gene-level/GO_annotation.scm")
 
 
