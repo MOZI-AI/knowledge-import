@@ -102,7 +102,7 @@ def findstem(arr):
 				res = stem 
 	return res.strip()
 
-def import_dataset(dataset, delim):
+def import_dataset(dataset, delim, without_location=False):
 	print("Started importing " + dataset)
 	if "UniProt" in dataset or "ChEBI" in dataset:
 		data = pd.read_csv(dataset, low_memory=False, delimiter=delim, names=["db_id", "R_PE_id", "R_PE_name","pathway","url","event_name", "evidence_code", "species","un1","un2","un3","un4","un5","un6"])
@@ -112,6 +112,12 @@ def import_dataset(dataset, delim):
 	mapping_entrez = pd.read_csv("raw_data/entrez.txt", low_memory=False, sep="\t")
 	# Take only symbols of Human species
 	data_human = data[data['species'] == 'Homo sapiens'][['db_id','R_PE_name','pathway']]
+
+	if without_location:
+		if not os.path.exists(os.path.join(os.getcwd(), 'gene-level-without-location')):
+			os.makedirs('gene-level-without-location')  
+		file_name = open("gene-level-without-location/"+dataset.split("/")[-1]+".scm", "w")
+
 	if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
 		os.makedirs('dataset')
 	with open("dataset/"+dataset.split("/")[-1]+".scm", 'w') as f:
@@ -147,6 +153,7 @@ def import_dataset(dataset, delim):
 					f.write(member(gene, pathway))
 					f.write(eva('l', gene, location))
 					f.write(")\n")
+					file_name.write(member(gene, pathway))
 					if not gene in genes:
 						genes.append(gene)
 					if not pathway in pathways:
@@ -191,6 +198,8 @@ def import_dataset(dataset, delim):
 					f.write(member("ChEBI:"+chebi_id, pathway))
 					f.write(eva('l', "ChEBI:"+chebi_id, loc))
 					f.write(")\n")
+					if without_location:
+						file_name.write(member("ChEBI:"+chebi_id, pathway))
 					if not chebi_id in molecules:
 						molecules.append(chebi_id)
 						f.write(eva("n","ChEBI:"+chebi_id, chebi_name))
@@ -211,7 +220,7 @@ if __name__ == "__main__":
 	option = input()
 	if option == "N" or option == "n":
 		get_data(option)
-		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t')
+		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
 	elif option == "U" or option == "u":
 		get_data(option)
@@ -219,15 +228,15 @@ if __name__ == "__main__":
 
 	elif option == "C" or option == "c":
 		# get_data(option)
-		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t')
+		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
 	elif option == "A" or option == "a":
 		get_data(option)
-		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t')
+		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
 		import_dataset('raw_data/UniProt2Reactome_PE_Pathway.txt', '\t')
 
-		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t')
+		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 	else:
 	    print("Incorect option, Try again")
 
