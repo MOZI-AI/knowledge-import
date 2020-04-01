@@ -14,6 +14,7 @@ import pandas as pd
 import os
 import math
 import metadata
+from datetime import date
 
 # Define helper functions 
 
@@ -32,7 +33,7 @@ else:
     genes = []
     if not os.path.exists(os.getcwd()+'/dataset'):
         os.makedirs('dataset')
-    with open("dataset/entrez_to_protein.scm", 'w') as f:
+    with open("dataset/entrez_to_protein_{}.scm".format(str(date.today())), 'w') as f:
         for i in range(len(data)):
             try:
                 g = data.iloc[i]['symbol']

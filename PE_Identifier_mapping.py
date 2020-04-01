@@ -15,6 +15,7 @@ import wget
 import os
 import sys
 import metadata
+from datetime import date
 
 # Get each of the files first
 
@@ -116,11 +117,11 @@ def import_dataset(dataset, delim, without_location=False):
 	if without_location:
 		if not os.path.exists(os.path.join(os.getcwd(), 'gene-level-without-location')):
 			os.makedirs('gene-level-without-location')  
-		file_name = open("gene-level-without-location/"+dataset.split("/")[-1]+".scm", "w")
+		file_name = open("gene-level-without-location/"+dataset.split("/")[-1]+"_without_location_{}.scm".format(str(date.today())), "w")
 
 	if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
 		os.makedirs('dataset')
-	with open("dataset/"+dataset.split("/")[-1]+".scm", 'w') as f:
+	with open("dataset/"+dataset.split("/")[-1]+"_{}.scm".format(str(date.today())), 'w') as f:
 		if "NCBI" in dataset:
 			genes = []
 			pathways = []

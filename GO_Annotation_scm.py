@@ -4,6 +4,7 @@ import wget
 import gzip
 import os
 import metadata
+from datetime import date
 
 source = "http://current.geneontology.org/annotations/goa_human.gaf.gz"
 if not os.path.exists("raw_data/goa_human.gaf.gz"):
@@ -52,8 +53,8 @@ if not os.path.exists(os.path.join(os.getcwd(), 'gene-level')):
       os.makedirs('gene-level')
 if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
       os.makedirs('dataset') 
-f_annotation = open('dataset/GO_annotation.scm', 'a')
-g_annotation = open('gene-level/GO_annotation.scm', 'a')
+f_annotation = open('dataset/GO_annotation_{}.scm'.format(str(date.today())), 'a')
+g_annotation = open('gene-level/GO_annotation_gene-level_{}.scm'.format(str(date.today())), 'a')
 
 #add GOC Validation Date
 f_annotation.write(";"+((lines[0]).split('!')[1]).split('$')[0]+ "\n")
