@@ -32,8 +32,9 @@ list of biology datasets (of Homo sapiens species).
 
 The imported Atomese version of the datasets can be found https://mozi.ai/datasets/
 
-NOTE: For expermenting only on a gene-level, the following scripts generate a reduced version of the data
+NOTE: For expermenting only on a gene-level, the following scripts generates only gene_level and reduced size (without extra information like name, pubmedId ...) version of the data
 
 - biogrid.py
 - GO_Annotation_scm.py
 - SMPDB_pathway.py
+- PE_Identifier_mapping.py
