@@ -11,6 +11,7 @@ import pandas as pd
 from urllib.request import urlopen
 import os
 import metadata
+from datetime import date
 
 # Helper functions
 
@@ -54,16 +55,13 @@ script = "https://github.com/MOZI-AI/knowledge-import/reactome_pathway.py"
 pathways = pathway_relation['parent'].values + pathway_relation['child'].values
 if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
     os.makedirs('dataset')
-g = open("gene-level/reactome.scm", 'w')
-with open("dataset/reactome.scm", 'w') as f:
+with open("dataset/reactome_{}.scm".format(str(date.today())), 'w') as f:
     for i in range(max_len):
         try:
             f.write(eva(pathway_list.iloc[i]['name'],pathway_list.iloc[i]['ID']))
             f.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
-            g.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
         except IndexError:
             f.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
-            g.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
 num_pathways = {"Reactome Pathway": len(set(pathways))}
 metadata.update_meta("Reactome Pathways relationship:latest", 
         pathway_rln+" "+pathway,script,pathways=num_pathways)

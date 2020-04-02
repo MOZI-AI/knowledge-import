@@ -16,6 +16,7 @@ from io import BytesIO
 import os
 import sys
 import metadata
+from datetime import date
 
 def checkdisc(diction, key, value):
   try:
@@ -24,6 +25,7 @@ def checkdisc(diction, key, value):
     return "key error"
 
 def import_data_from_web(version):
+  print("Started downloading the source")
   if version:
     try:
       thefile = urlopen('https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-'+ version +'/BIOGRID-ORGANISM-'+ version +'.tab2.zip')
@@ -68,9 +70,9 @@ def import_data(data, source, version, gene_level=False):
   if gene_level:
     if not os.path.exists(os.path.join(os.getcwd(), 'gene-level')):
       os.makedirs('gene-level') 
-    g = open('gene-level/biogrid_gene_gene_'+version+'.scm','w')
+    g = open('gene-level/biogrid_gene_gene_'+version+"_gene-level_"+str(date.today())+'.scm','w')
 
-  with open('dataset/biogrid_gene_gene_'+version+'.scm','w') as f:
+  with open('dataset/biogrid_gene_gene_'+version+"_"+str(date.today())+'.scm','w') as f:
       pairs = {}
       entrez = []
       for i in range(len(data)):
@@ -127,7 +129,7 @@ def import_data(data, source, version, gene_level=False):
   number_of_interactions = len(set(pairs.keys()))
   script = "https://github.com/MOZI-AI/knowledge-import/biogrid.py"
   metadata.update_meta("Biogrid:"+version, source,script,genes=str(len(set(number_of_genes))),interactions=str(number_of_interactions))
-  print("Done, check"+'dataset/biogrid_gene_gene_'+version+'.scm')
+  print("Done, check"+'dataset/biogrid_gene_gene_'+version+"_"+str(date.today())+'.scm')
 
 if __name__ == "__main__":
   """

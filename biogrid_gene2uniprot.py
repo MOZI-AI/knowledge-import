@@ -13,6 +13,7 @@ import math
 from collections import defaultdict
 import metadata
 import os
+from datetime import date
 
 script = "https://github.com/MOZI-AI/knowledge-import/biogrid_gene2uniprot.py"
 
@@ -23,7 +24,8 @@ def to_atomese(data):
     proteins = []
     if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
         os.makedirs('dataset')
-    with open("dataset/biogridgene2uniprot.scm", 'w') as f:
+    output_file = "dataset/biogridgene2uniprot_{}.scm".format(str(date.today()))   
+    with open(output_file, 'w') as f:
         for i in range(df.shape[0]):
             gene = df.iloc[i]['gene_symbol'].upper().strip()
             biogrid_id = str(df.iloc[i]['biogrid_id'])
@@ -51,12 +53,13 @@ def to_atomese(data):
                     '\t\t(ConceptNode "Bio:'+biogrid_id+'")))\n\n')
     metadata.update_meta("Biogrid-Gene2uniprot:latest", 
         "uniprot2biogrid.csv, gene2biogrid.csv",script,genes=str(len(genes)),prot=len(proteins))
+    print("Done, check {}".format(output_file))
  
 if __name__ == "__main__":
     '''
         Requires: uniprot to biogrid_id mapping file uniprot2biogrid.csv and
         Biogrid gene symbold to biogrid_id mapping file gene2biogrid.csv 
-        (run biogrid_genes.py to get gene2biogrid.csv)
+        (run biogrid_genes2id.py to get gene2biogrid.csv)
     '''
     print("imports the biogrid_genes mapped to their coding uniprots though biogrid_id\n")
     try:
@@ -71,4 +74,3 @@ if __name__ == "__main__":
         for b in biogrid_id.split(","):
                 bio.loc[bio['biogrid_id']==int(b), 'uniprot'] = prot
     to_atomese(bio)
-    print("Done, check dataset/biogridgene2uniprot.scm")

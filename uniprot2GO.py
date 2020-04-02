@@ -10,6 +10,7 @@ import os
 import wget
 import gzip
 import metadata
+from datetime import date
 
 # Define helper functions 
 
@@ -26,7 +27,7 @@ if not os.path.isfile('raw_data/goa_human_isoform_valid.gaf'):
 else:
     lines = open('raw_data/goa_human_isoform_valid.gaf').readlines()
 
-with open("dataset/uniprot2GO.scm", 'w') as f:
+with open("dataset/uniprot2GO_{}.scm".format(str(date.today())), 'w') as f:
     print("\nStarted importing")
     for i in lines:
         if 'UniProtKB' in i:

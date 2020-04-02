@@ -8,6 +8,7 @@ import gzip
 import os
 import metadata
 import pandas as pd
+from datetime import date
 
 def expres(predicate, node1, node2):
     return ""+'\n(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t(ListLink \n\t\t'+ node1 +'\n\t\t'+ node2 +'))\n'
@@ -31,7 +32,7 @@ print("\nStarted importing\n")
 rnas = []
 genes = []
 proteins = []
-with open("dataset/codingRNA.scm", 'w') as f:
+with open("dataset/codingRNA_{}.scm".format(str(date.today())), 'w') as f:
     for i in range(len(df)):
         rna = df.iloc[i]["transcript_stable_id"]
         gene = df.iloc[i]['Approved symbol'].strip()

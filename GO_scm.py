@@ -8,10 +8,12 @@ import re
 import wget
 import metadata
 import os
+from datetime import date
 
 source = "http://snapshot.geneontology.org/ontology/go.obo"
-if os.path.exists(os.path.join(os.getcwd(),'dataset/GO.scm')):
-    os.remove('dataset/GO.scm')
+output_data = 'dataset/GO_{}.scm'.format(str(date.today()))
+if os.path.exists(os.path.join(os.getcwd(),output_data)):
+    os.remove(output_data)
 if os.path.exists('raw_data/go.obo'):
     os.remove('raw_data/go.obo')
 dataset = wget.download(source,"raw_data/")
@@ -68,7 +70,7 @@ def go_relationship(idd,relate_id, relation_type):
     evaLink(("GO_" + relation_type), idd, relate_id, "ConceptNode" , "ConceptNode")
 
 # open file to write
-f_go = open('dataset/GO.scm', 'a')
+f_go = open(output_data, 'a')
 goterm = {"biological_process":[],"molecular_function":[],"cellular_component":[]}
 i = 0
 # partition each line and call functions

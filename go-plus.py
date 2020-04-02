@@ -7,6 +7,7 @@ import wget
 import metadata
 import os
 import pandas as pd
+from datetime import date
 
 def get_term(class_id):
     if str(class_id) == "nan":
@@ -37,7 +38,7 @@ columns = ["Class ID","Obsolete","negatively regulated by","negatively regulates
 
 df = df[columns]
 
-with open("dataset/Go-Plus.scm","w") as f:
+with open("dataset/Go-Plus_{}.scm".format(str(date.today())),"w") as f:
     for i in range(len(df)):
         term = get_term(df.iloc[i]["Class ID"])
         obsolete = df.iloc[i]["Obsolete"]

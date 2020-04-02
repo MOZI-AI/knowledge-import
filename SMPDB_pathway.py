@@ -20,6 +20,7 @@ from zipfile import ZipFile
 from io import BytesIO
 import wget
 import metadata
+from datetime import date
 
 script = "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py"
 
@@ -53,9 +54,9 @@ def import_metabolites(gene_level=False):
     if gene_level:
         if not os.path.exists(os.path.join(os.getcwd(), 'gene-level')):
             os.makedirs('gene-level')  
-        g = open("gene-level/smpdb_chebi.scm", "w")
+        g = open("gene-level/smpdb_chebi_{}.scm".format(str(date.today())), "w")
 
-    with open("dataset/smpdb_chebi.scm", 'w') as f:
+    with open("dataset/smpdb_chebi_{}.scm".format(str(date.today())), 'w') as f:
         for filename in pathway_chebi:
             data = pd.read_csv("raw_data/smpdb_chebi/"+filename, low_memory=False)
 
@@ -74,7 +75,7 @@ def import_metabolites(gene_level=False):
                 f.write(atomese(chebi_id, 'MoleculeNode', chebi_name, 'ConceptNode', node1_prefix='ChEBI:', predicate='has_name') )
 
     num_pathways = {"SMPDB Pathway": len(pathways)} 
-    metadata.update_meta("smpdb_metabolites: Latest",source, script,chebi=chebis, pathways=num_pathways)        
+    metadata.update_meta("smpdb_metabolites: Latest",source, script,chebi=len(chebis), pathways=num_pathways)        
     print("Done. Check dataset/smpdb_chebi.scm")
 
 def import_proteins(gene_level=False):
@@ -93,9 +94,9 @@ def import_proteins(gene_level=False):
     print("Started importing {} files of smpdb_proteins".format(len(pathway_prot)))
     
     if gene_level:
-        g = open("gene-level/smpdb_gene.scm", "w")
+        g = open("gene-level/smpdb_gene_{}.scm".format(str(date.today())), "w")
 
-    with open("dataset/smpdb_protein.scm", 'w') as f:
+    with open("dataset/smpdb_protein_{}.scm".format(str(date.today())), 'w') as f:
         for filename in pathway_prot:
             data = pd.read_csv("raw_data/smpdb_prot/"+filename, low_memory=False)
             for r,c in data.iterrows():
@@ -123,7 +124,7 @@ def import_proteins(gene_level=False):
             # print("Imported "+filename)
     
     num_pathways = {"SMPDB Pathway": len(pathways)} 
-    metadata.update_meta("smpdb_proteins: Latest",source, script,genes=genes, prot=proteins,pathways=num_pathways)
+    metadata.update_meta("smpdb_proteins: Latest",source, script,genes=len(genes), prot=len(proteins),pathways=num_pathways)
     print("Done. Check dataset/smpdb_protein.scm and gene-level/smpdb_gene.scm")
 
 ## Import them
