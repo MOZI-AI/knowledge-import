@@ -128,7 +128,7 @@
         "Number of Proteins ": 1490,
         "Number of SMPDB Pathway": 48642,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py",
-        "Import Date ": "2020-04-01"
+        "Import Date ": "2020-04-03"
       }
     ],
     "smpdb_metabolites": [
@@ -138,7 +138,7 @@
         "Number of Small Molecules ": 1551,
         "Number of SMPDB Pathway": 48674,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py",
-        "Import Date ": "2020-04-01"
+        "Import Date ": "2020-04-03"
       }
     ]
   }
