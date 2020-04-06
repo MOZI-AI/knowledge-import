@@ -31,7 +31,7 @@ def atomese(node1, node1_type, node2, node2_type, node1_prefix="", node2_prefix=
         if predicate:
             return '(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t(ListLink \n\t\t'+ atom1 +'\n\t\t'+ atom2 +'))\n'
         else:
-            return '(MemberLink \n'+'\t(ListLink \n\t\t'+ atom1 +'\n\t\t'+ atom2 +'))\n'
+            return '(MemberLink \n'+'\t'+ atom1 +'\n\t'+ atom2 +')\n'
     else:
         return ""
 
