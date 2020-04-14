@@ -152,6 +152,7 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
     tmp = [ev_name]
     # properties ofter don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
+        tmp += process_genes(protein.find('./bp:standardName', ns).text, pathway_id) 
         protein_ref_id = None
         for key, value in protein.attrib.items():
             match = protein_ref_re.match(value)
@@ -177,9 +178,17 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
         for value in reference.attrib.values():
             pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
             if pharma_pkg_id is None:
-                print("no pharmapkg id for {0}".format(value))
-                continue
-            pharma_pkg_id = pharma_pkg_id.group(1)
+                # try by standard name
+                name = smallmolecule.find('./bp:standardName', ns).text.lower()
+                row = chem_data[chem_data.Name == name]
+                if len(row):
+                    assert len(row) == 1
+                    pharma_pkg_id = row.iloc[0]['PharmGKB Accession Id']
+                else:
+                    print("no pharmapkg id for {0}".format(value))
+                    continue
+            else:
+                pharma_pkg_id = pharma_pkg_id.group(1)
             molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
             tmp += gen_chemical_members(molecule_drug, pathway_id)
     return '\n'.join([x.recursive_print() for x in tmp])
