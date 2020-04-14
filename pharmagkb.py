@@ -263,7 +263,7 @@ def main():
             pathway_id = filename.split('-')[0]
         res = convert_pathway(tree, chem_data, genes_data, pathway_id, pathway_name, ns)
         output.write(res)
-        output.write('\n')
+        output.write('\n' * 3)
     output.close()
 
 
