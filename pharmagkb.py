@@ -1,3 +1,11 @@
+"""
+converter from pharmagkb to atomese
+http://pharmgkb.org
+"""
+
+__author__ = "Anatoly Belikov"
+__email__ = "abelikov@singularitynet.io"
+
 import re
 import subprocess
 import urllib.request
@@ -6,70 +14,8 @@ import xml.etree.ElementTree as ET
 from zipfile import ZipFile
 from io import BytesIO
 import pandas
+from atomwrappers import *
 
-
-class CAtom:
-    pass
-
-
-class CNode(CAtom):
-    def __init__(self, name):
-        self.name = name
-
-    def __str__(self):
-        return '({0} "{1}")'.format(self.atom_type, self.name) 
-
-    def recursive_print(self, result='', indent=''):
-        return result + indent + str(self)
-
-
-class CLink(CAtom):
-    def __init__(self, *atoms):
-        self.outgoing = atoms
-
-    def __str__(self):
-        outgoing = '\n'.join([str(x) for x in self.outgoing])
-        return '({0} {1})'.format(self.atom_type, outgoing)
-
-    def recursive_print(self, result='', indent=''):
-        result += '({0}'.format(self.atom_type)
-        indent = indent + '    '
-        for x in self.outgoing:
-            result = x.recursive_print(result + '\n', indent)
-        result += ')'
-        return result
-
-
-class CEvaluationLink(CLink):
-    atom_type = 'EvaluationLink'
-
-class CPredicateNode(CNode):
-    atom_type = 'PredicateNode'
-
-class CConceptNode(CNode):
-    atom_type = 'ConceptNode'
-
-class CMoleculeNode(CNode):
-    atom_type = 'MoleculeNode'
-
-class CMemberLink(CLink):
-    atom_type = 'MemberLink'
-
-class CListLink(CLink):
-    atom_type = 'ListLink'
-
-class CGeneNode(CNode):
-    atom_type = 'GeneNode'
-
-reaction_names = dict()
-reaction_names['Biochemical Reaction'] = 'biochemical_reaction'
-reaction_names['Activation'] = 'activation_of'
-reaction_names['Transport'] = 'transport_of'
-
-
-pharma2chebi_map = dict()
-pharma2chebi_map['serotonin'] = 28790
-pharma2chebi_map['tropisetron'] = 32269
 
 chebi_re = re.compile(".*ChEBI:CHEBI:(\d+).*")
 pubchem_re = re.compile(".*PubChem Compound:(\d+).*")
@@ -80,7 +26,23 @@ re_dict['ChEBI'] = [chebi_re]
 re_dict['PubChem'] = [pubchem_re, pubchem_re_sub]
 re_dict['DrugBank'] = [drugbank_re]
 
+
 def pharma_to_id(chem_table, name):
+    """
+    extract references to the substance from chem_table
+
+    Parameters:
+    -----------
+    chem_table: pandas.DataFrame
+        pharagkb chemicals
+    name: str
+        pharmagkb id for the substance
+    
+    Returns
+    -------
+    dict
+        database name: id pairs
+    """
     chem = chem_table[chem_table['PharmGKB Accession Id'] == name]
     if not len(chem):
         print("Not found chemical row for {0}".format(name))
@@ -112,8 +74,11 @@ def gen_chemical_members(mol_id_map, pathway_id):
     return tmp
 
 
-gene_re = re.compile('^([A-Z0-9]*)$')
+gene_re = re.compile('([A-Z0-9-]*).*')
 def gen_gene_member(gene, pathway_id):
+    match = gene_re.match(gene)
+    assert match is not None
+    gene = match.group(1)
     member = CMemberLink(CGeneNode(gene), CConceptNode(pathway_id))
     return [member]
 
@@ -150,7 +115,7 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
                  CListLink(CConceptNode(pathway_id),
                            CConceptNode(pathway_name)))
     tmp = [ev_name]
-    # properties ofter don't have valid attributes 
+    # properties often don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
         tmp += process_genes(protein.find('./bp:standardName', ns).text, pathway_id) 
         protein_ref_id = None
@@ -193,15 +158,18 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
             tmp += gen_chemical_members(molecule_drug, pathway_id)
     return '\n'.join([x.recursive_print() for x in tmp])
         
-
-def parse_map(tree):
+# https://effbot.org/zone/element-namespaces.htm
+def parse_map(source_file):
+    """
+    Extract namespaces from xml file
+    """
 
     events = "start", "start-ns", "end-ns"
 
     root = None
     ns_map = []
     result = dict()
-    for event, elem in ET.iterparse(tree, events):
+    for event, elem in ET.iterparse(source_file, events):
         if event == "start-ns":
             ns_map.append(elem)
         elif event == "end-ns":
@@ -213,14 +181,15 @@ def parse_map(tree):
 
     return result
 
-PATHWAY_RE = re.compile('(PA\d+)-(\w+).owl')
 
+PATHWAY_RE = re.compile('(PA\d+)-(\w+).owl')
 def get_pathway_id_name(root, ns):
     name = root.findall('./bp:Pathway/bp:displayName', ns)[0].text
     tmp = root.findall('./bp:Pathway[@rdf:about]', ns)
     res = []
     for x in tmp:
         if x.findall('./bp:pathwayComponent', ns):
+            name = x.find('./bp:displayName', ns).text
             res.append(x)
             continue
     assert len(res) == 1
@@ -300,5 +269,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
