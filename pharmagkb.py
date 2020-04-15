@@ -7,7 +7,6 @@ __author__ = "Anatoly Belikov"
 __email__ = "abelikov@singularitynet.io"
 
 import re
-import subprocess
 import urllib.request
 import argparse
 import xml.etree.ElementTree as ET
@@ -66,12 +65,31 @@ def pharma_to_id(chem_table, name):
 
 
 def gen_chemical_members(mol_id_map, pathway_id):
-    tmp = []
+    """
+    Generate member links for the substance pointed mol_id_map
+    
+    Parameters
+    ----------
+    mol_id_map: dict
+        Database name, id pairs
+    pathway_id: str
+        pharma gkb id for pathway
+        
+    Returns
+    -------
+    tuple[list, list]
+        member links connecting substance to pathway
+        MoleculeNodes for the substance
+    """
+    tmp = list()
+    molecules = list()
     for (id_type, mol_id) in mol_id_map.items():
-        member = CMemberLink(CMoleculeNode('{0}:{1}'.format(id_type, mol_id)),
+        molecule = CMoleculeNode('{0}:{1}'.format(id_type, mol_id))
+        member = CMemberLink(molecule,
                              CConceptNode(pathway_id))
         tmp.append(member)
-    return tmp
+        molecules.append(molecule)
+    return tmp, molecules
 
 
 gene_re = re.compile('([A-Z0-9-]*).*')
@@ -109,23 +127,68 @@ def process_genes(genes_str, pathway_id, organism=None):
 
 uniprot_re = re.compile('.*UniProtKB:([A-Za-z0-9-]+).*')
 def process_proteins(pharma_id, pathway_id, genes_data):
+    """
+    Generate member links for the protein pointed by pharmagkb id
+    
+    Parameters
+    ----------
+    pharma_id: str
+        pharma gkb id for protein
+    pathway_id: str
+        pharma gkb id for pathway
+    genes_data: pandas.DataFrame
+        table of genes data
+        
+    Returns
+    -------
+    tuple[list, list]
+        member links connecting protein to pathway
+        MoleculeNodes for proteins
+    """
     tmp = []
+    proteins = []
     gene = genes_data[genes_data['PharmGKB Accession Id'] == pharma_id]
     if len(gene) == 0:
         print("no gene for {0} in genes table".format(pharma_id))
-        return tmp
+        return tmp, proteins
     assert len(gene) == 1
     for ref in gene['Cross-references'].tolist()[0].split(','):
         match = uniprot_re.match(ref)
         if match:
             for prot_id in match.groups():
-                tmp += gen_chemical_members({'Uniprot': prot_id}, pathway_id)
+                members, molecules = gen_chemical_members({'Uniprot': prot_id}, pathway_id)
+                tmp += members
+                proteins += molecules
         else:
             assert 'uniprot' not in ref.lower()
-    return tmp
+    return tmp, proteins
+
+
+def gen_location(protein_node, location_node, pathway_id):
+    return CContextLink(CConceptNode(pathway_id),
+               CEvaluationLink(CPredicateNode("has_location"),
+                               CListLink(protein_node,
+                                         location_node)))
+                               
+
+def generate_locations(elem, ns, chemical_nodes, pathway_id):
+    result = []
+    for location_elem in elem.findall('./bp:cellularLocation', ns):
+           for location in location_elem.attrib.values():
+               match = go_location_re.match(location) 
+               if match:
+                   go_location = match.group(1)
+                   location_node = CConceptNode(go_location)
+                   for chemical_node in chemical_nodes:
+                       context = gen_location(chemical_node, location_node, pathway_id)
+                       result.append(context)
+               else:
+                   assert 'go:' not in location.lower()
+    return result
 
 
 protein_ref_re = re.compile('pgkb.[a-z0-9]+.[A-Za-z0-9]+.*(PA\d+).*')
+go_location_re = re.compile('.*(GO:\d+).*')
 def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns):
     ev_name = CEvaluationLink(
                  CPredicateNode("has_name"),
@@ -157,7 +220,9 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
            name = protein.find('./bp:standardName', ns).text
            print("can't map protein to uniprot for {0}".format(name))
            continue
-        tmp += process_proteins(protein_ref_id, pathway_id, genes_data)
+        members, protein_nodes = process_proteins(protein_ref_id, pathway_id, genes_data)
+        tmp += generate_locations(protein, ns, protein_nodes, pathway_id)
+        tmp += members
     for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
         reference = smallmolecule.find('bp:entityReference', ns)
         assert reference is not None
@@ -176,9 +241,12 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
             else:
                 pharma_pkg_id = pharma_pkg_id.group(1)
             molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
-            tmp += gen_chemical_members(molecule_drug, pathway_id)
+            members, chemical_nodes = gen_chemical_members(molecule_drug, pathway_id)
+            tmp += generate_locations(smallmolecule, ns, chemical_nodes, pathway_id)
+            tmp += members
     return '\n'.join([x.recursive_print() for x in tmp])
-        
+
+
 # https://effbot.org/zone/element-namespaces.htm
 def parse_map(source_file):
     """
@@ -233,6 +301,7 @@ def build_request(url):
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     response = urllib.request.urlopen(req)
     return response
+
 
 def download():
     pathway = 'https://s3.pgkb.org/data/pathways-biopax.zip' 
