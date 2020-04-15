@@ -75,19 +75,36 @@ def gen_chemical_members(mol_id_map, pathway_id):
 
 
 gene_re = re.compile('([A-Z0-9-]*).*')
-def gen_gene_member(gene, pathway_id):
+def gen_gene_member(gene, pathway_id, organism=None):
     match = gene_re.match(gene)
     assert match is not None
     gene = match.group(1)
+    result = []
     member = CMemberLink(CGeneNode(gene), CConceptNode(pathway_id))
-    return [member]
+    result.append(member)
+    if organism is not None:
+        org_link = CMemberLink(CGeneNode(gene), CConceptNode("oranism:NCBI{0}".format(organism)))
+        result.append(org_link)
+    return result
 
 
-def process_genes(genes_str, pathway_id):
+def process_genes(genes_str, pathway_id, organism=None):
+    """
+    Add member link for comma-separated string of genes
+    Parameters
+    ----------
+    genes_str: str
+        genes
+    pathway_id: str
+        pharmagkb id
+    organism: str
+        optional parameter, organism genes belong to
+        default is that genes belong to human sapiens - ncbi 9606
+    """
     tmp = []
     if isinstance(genes_str, str):
         for gene in genes_str.split(','):
-            tmp += gen_gene_member(gene.strip(), pathway_id)
+            tmp += gen_gene_member(gene.strip(), pathway_id, organism=organism)
     return tmp
 
 uniprot_re = re.compile('.*UniProtKB:([A-Za-z0-9-]+).*')
@@ -117,7 +134,11 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
     tmp = [ev_name]
     # properties often don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
-        tmp += process_genes(protein.find('./bp:standardName', ns).text, pathway_id) 
+        name = protein.find('./bp:standardName', ns).text
+        organism = None
+        if name.strip().startswith('HIV'):
+            organism = '12721'
+        tmp += process_genes(name, pathway_id, organism) 
         protein_ref_id = None
         for key, value in protein.attrib.items():
             match = protein_ref_re.match(value)
