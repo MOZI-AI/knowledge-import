@@ -126,7 +126,7 @@ def process_genes(genes_str, pathway_id, organism=None):
     return tmp
 
 uniprot_re = re.compile('.*UniProtKB:([A-Za-z0-9-]+).*')
-def process_proteins(pharma_id, pathway_id, genes_data):
+def gen_proteins(pharma_id, pathway_id, genes_data):
     """
     Generate member links for the protein pointed by pharmagkb id
     
@@ -187,14 +187,34 @@ def generate_locations(elem, ns, chemical_nodes, pathway_id):
     return result
 
 
-protein_ref_re = re.compile('pgkb.[a-z0-9]+.[A-Za-z0-9]+.*(PA\d+).*')
-go_location_re = re.compile('.*(GO:\d+).*')
-def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns):
-    ev_name = CEvaluationLink(
-                 CPredicateNode("has_name"),
-                 CListLink(CConceptNode(pathway_id),
-                           CConceptNode(pathway_name)))
-    tmp = [ev_name]
+def process_small_molecules(pathway, ns, pathway_id, chem_data):
+    tmp = list()
+    for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
+        reference = smallmolecule.find('bp:entityReference', ns)
+        assert reference is not None
+        for value in reference.attrib.values():
+            pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
+            if pharma_pkg_id is None:
+                # try by standard name
+                name = smallmolecule.find('./bp:standardName', ns).text.lower()
+                row = chem_data[chem_data.Name == name]
+                if len(row):
+                    assert len(row) == 1
+                    pharma_pkg_id = row.iloc[0]['PharmGKB Accession Id']
+                else:
+                    print("no pharmapkg id for {0}".format(value))
+                    continue
+            else:
+                pharma_pkg_id = pharma_pkg_id.group(1)
+            molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
+            members, chemical_nodes = gen_chemical_members(molecule_drug, pathway_id)
+            tmp += generate_locations(smallmolecule, ns, chemical_nodes, pathway_id)
+            tmp += members
+    return tmp
+ 
+ 
+def process_proteins(pathway, ns, pathway_id, genes_data):
+    tmp = list()
     # properties often don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
         name = protein.find('./bp:standardName', ns).text
@@ -220,30 +240,23 @@ def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns
            name = protein.find('./bp:standardName', ns).text
            print("can't map protein to uniprot for {0}".format(name))
            continue
-        members, protein_nodes = process_proteins(protein_ref_id, pathway_id, genes_data)
+        members, protein_nodes = gen_proteins(protein_ref_id, pathway_id, genes_data)
         tmp += generate_locations(protein, ns, protein_nodes, pathway_id)
         tmp += members
-    for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
-        reference = smallmolecule.find('bp:entityReference', ns)
-        assert reference is not None
-        for value in reference.attrib.values():
-            pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
-            if pharma_pkg_id is None:
-                # try by standard name
-                name = smallmolecule.find('./bp:standardName', ns).text.lower()
-                row = chem_data[chem_data.Name == name]
-                if len(row):
-                    assert len(row) == 1
-                    pharma_pkg_id = row.iloc[0]['PharmGKB Accession Id']
-                else:
-                    print("no pharmapkg id for {0}".format(value))
-                    continue
-            else:
-                pharma_pkg_id = pharma_pkg_id.group(1)
-            molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
-            members, chemical_nodes = gen_chemical_members(molecule_drug, pathway_id)
-            tmp += generate_locations(smallmolecule, ns, chemical_nodes, pathway_id)
-            tmp += members
+    return tmp
+
+
+protein_ref_re = re.compile('pgkb.[a-z0-9]+.[A-Za-z0-9]+.*(PA\d+).*')
+go_location_re = re.compile('.*(GO:\d+).*')
+def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns):
+    print("processing pathway {0} {1}".format(pathway_id, pathway_name))
+    ev_name = CEvaluationLink(
+                 CPredicateNode("has_name"),
+                 CListLink(CConceptNode(pathway_id),
+                           CConceptNode(pathway_name)))
+    tmp = [ev_name]
+    tmp += process_proteins(pathway, ns, pathway_id, genes_data)
+    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data)
     return '\n'.join([x.recursive_print() for x in tmp])
 
 
