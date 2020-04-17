@@ -28,3 +28,20 @@ out_fp = open(output_file, "a")
 
 if os.path.exists(os.path.join(os.getcwd(), output_file)):
   os.remove(output_file)
+
+def evalink(pred, node_type1, node_type2, node1, node2):
+  out_fp.write("(EvaluationLink\n")
+  out_fp.write("\t(PredicateNode \"" + pred + "\")\n")
+  out_fp.write("\t(ListLink\n")
+  out_fp.write("\t\t(" + node_type1 + " \"" + node1 + "\")\n")
+  out_fp.write("\t\t(" + node_type2 + " \"" + node2 + "\")\n")
+  out_fp.write("\t)\n")
+  out_fp.write(")\n")
+
+def memblink(node1, node2):
+  out_fp.write("(MemberLink\n")
+  out_fp.write("\t(ConceptNode \"" + node1 + "\")\n")
+  out_fp.write("\t(ConceptNode \"" + node2 + "\")\n")
+  out_fp.write(")\n")
+
+out_fp.close()
