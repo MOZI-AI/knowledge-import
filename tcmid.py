@@ -24,7 +24,7 @@ tcmid_source_rars = [
 tcmid_base_url = "http://119.3.41.228:8000/static/download/"
 
 output_file = "dataset/tcmid_{}.scm".format(str(date.today()))
-out_fp = open(output_file, "a")
+out_fp = open(output_file, "a", encoding='utf8')
 
 if os.path.exists(os.path.join(os.getcwd(), output_file)):
   os.remove(output_file)
@@ -43,5 +43,15 @@ def memblink(node1, node2):
   out_fp.write("\t(ConceptNode \"" + node1 + "\")\n")
   out_fp.write("\t(ConceptNode \"" + node2 + "\")\n")
   out_fp.write(")\n")
+
+for rar_name in tcmid_source_rars:
+  rar_path = "raw_data/{}".format(rar_name)
+
+  if os.path.exists(rar_path):
+    print("Removing file: {}".format(rar_path))
+    os.remove(rar_path)
+
+  rar_file = wget.download(tcmid_base_url + rar_name, "raw_data")
+  print("\nFile downloaded: {}".format(rar_file))
 
 out_fp.close()
