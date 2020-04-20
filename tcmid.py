@@ -96,10 +96,12 @@ for rar_name in tcmid_source_rars:
           prescription = contents[0]
           composition = contents[3].split(",")
           for compo in composition:
-            compo_part = herb_part_dict[compo] if compo in herb_part_dict else compo
-            evalink("composition", "ConceptNode", "ConceptNode", compo_part, prescription)
-            memblink(compo, "herb")
-          memblink(prescription, "prescription")
+            if is_available(compo) and is_available(prescription):
+              compo_part = herb_part_dict[compo] if compo in herb_part_dict else compo
+              evalink("composition", "ConceptNode", "ConceptNode", compo_part, prescription)
+              memblink(compo, "herb")
+          if is_available(prescription):
+            memblink(prescription, "prescription")
 
     elif rar_file.endswith(tcmid_spectrum):
       # Skip the first line (columns) in this file
