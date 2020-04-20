@@ -126,7 +126,7 @@ for rar_name in tcmid_source_rars:
         print("--- Reading line: " + line)
         if is_available(line):
           contents = line.split("\t")
-          ingredient = contents[0].lower().strip()
+          ingredient = contents[0].replace("\"", "").lower().strip()
           gnsp_id = contents[1].replace("\"", "").strip()
           if is_available(ingredient) and is_available(gnsp_id):
             evalink("has_gnsp_id", "MoleculeNode", "ConceptNode", ingredient, gnsp_id)
