@@ -88,44 +88,61 @@ meta = {}
 
 print("Started importing")
 for i in range(len(df)):
-    term = get_term(df.iloc[i]["Class ID"])
-    obsolete = df.iloc[i]["Obsolete"]
-    definition = df.iloc[i]["definition"]
-    if obsolete != "true" and "GO" in term:
-        go.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-        go_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-        go_with_def.write(evaLink(term, definition, "GO_definition"))
-        for col in go_columns:
-            go.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
-            go_with_def.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
+    try:
+        term = get_term(df.iloc[i]["Class ID"])
+        obsolete = df.iloc[i]["Obsolete"]
+        definition = df.iloc[i]["definition"]
+        if obsolete != "true" and "GO" in term:
+            go.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "GO_name"))
+            go_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "GO_name"))
+            go_with_def.write(evaLink(term, definition, "GO_definition"))
+            for col in go_columns:
+                """
+                positive/negatively regulated by is inverse of positive/negatively regulates
+                has part is inverse of part of, keep the predicate the same with reverse order
+                """
+                if col.endswith("regulated by"):
+                    col_pred = col.replace("regulated by", "regulates")
+                    go.write(evaLink(get_term(df.iloc[i][col]),term, "GO_{}".format(col_pred.replace(" ", "_"))))
+                    go_with_def.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col.replace(" ", "_"))))
+                elif col == "part of":
+                    col_pred = "has part" 
+                    go.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col_pred.replace(" ", "_"))))
+                    go_with_def.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col.replace(" ", "_"))))
+                else:                
+                    go.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
+                    go_with_def.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
 
-    elif obsolete != "true" and "UBERON" in term:
-        uberon.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-        uberon_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-        uberon_with_def.write(evaLink(term, definition, "UBERON_definition"))
-        for col in uberon_columns:
-            uberon.write(evaLink(term, get_term(df.iloc[i][col]), "UBERON_{}".format(col.replace(" ", "_"))))
+        elif obsolete != "true" and "UBERON" in term:
+            uberon.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
+            uberon_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
+            uberon_with_def.write(evaLink(term, definition, "UBERON_definition"))
+            for col in uberon_columns:
+                uberon.write(evaLink(term, get_term(df.iloc[i][col]), "UBERON_{}".format(col.replace(" ", "_"))))
 
-    elif obsolete != "true" and "CL" in term or "ChEBI" in term:
-        if "CL" in term:
-            file_name = cl
-            file_name_with_def = cl_with_def
-        else:
-            file_name = chebi
-            file_name_with_def = chebi_with_def
-
-        file_name.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name", parent_chebis=parent_chebis))
-        file_name_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name",parent_chebis=parent_chebis))
-        file_name_with_def.write(evaLink(term, definition, "has_definition", parent_chebis=parent_chebis))
-        for col in cl_columns:
-            if col == "Parents":
-                parents = df.iloc[i][col]
-                if str(parents) != "nan":
-                    for p in parents.split("|"): 
-                        file_name.write(inheritLink(term,get_term(p), parent_chebis=parent_chebis))
-                        file_name_with_def.write(inheritLink(term, get_term(p), parent_chebis=parent_chebis))
+        elif obsolete != "true" and "CL" in term or "ChEBI" in term:
+            if "CL" in term:
+                file_name = cl
+                file_name_with_def = cl_with_def
             else:
-                file_name.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
-                file_name_with_def.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
+                file_name = chebi
+                file_name_with_def = chebi_with_def
+
+            file_name.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name", parent_chebis=parent_chebis))
+            file_name_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name",parent_chebis=parent_chebis))
+            file_name_with_def.write(evaLink(term, definition, "has_definition", parent_chebis=parent_chebis))
+            for col in cl_columns:
+                if col == "Parents":
+                    parents = df.iloc[i][col]
+                    if str(parents) != "nan":
+                        for p in parents.split("|"): 
+                            file_name.write(inheritLink(term,get_term(p), parent_chebis=parent_chebis))
+                            file_name_with_def.write(inheritLink(term, get_term(p), parent_chebis=parent_chebis))
+                else:
+                    file_name.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
+                    file_name_with_def.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
+    except Exception as e:
+        print(e)
+        continue
 print("Done")
             
