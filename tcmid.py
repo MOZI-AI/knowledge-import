@@ -21,7 +21,7 @@ tcmid_source_rars = [
   tcmid_herb,
   tcmid_prescription,
 #  tcmid_network,
-#  tcmid_gnsp,
+  tcmid_gnsp,
   tcmid_spectrum
 ]
 tcmid_base_url = "http://119.3.41.228:8000/static/download/"
@@ -113,6 +113,17 @@ for rar_name in tcmid_source_rars:
           spectrum_description = [x.lower().strip() for x in contents[6].split(";")]
           for sd in spectrum_description:
             if is_available(sd) and is_available(pinyin_name):
-              evalink("has_HPLC_description", "ConceptNode", "ConceptNode", pinyin_name, sd)
+              evalink("has_hplc_description", "ConceptNode", "ConceptNode", pinyin_name, sd)
+
+    elif rar_file.endswith(tcmid_gnsp):
+      # Skip the first line (columns) in this file
+      for line in lines[1:]:
+        print("--- Reading line: " + line)
+        if is_available(line):
+          contents = line.split("\t")
+          ingredient = contents[0].lower().strip()
+          gnsp_id = contents[1].replace("\"", "").strip()
+          if is_available(ingredient) and is_available(gnsp_id):
+            evalink("has_gnsp_id", "MoleculeNode", "ConceptNode", ingredient, gnsp_id)
 
 out_fp.close()
