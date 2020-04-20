@@ -22,7 +22,7 @@ tcmid_source_rars = [
   tcmid_prescription,
 #  tcmid_network,
 #  tcmid_gnsp,
-#  tcmid_spectrum
+  tcmid_spectrum
 ]
 tcmid_base_url = "http://119.3.41.228:8000/static/download/"
 
@@ -61,7 +61,7 @@ for rar_name in tcmid_source_rars:
   with rarfile.RarFile(rar_file) as rf:
     # There should only be one file per RAR file
     # Decode using UTF-8 for the Chinese characters
-    lines = rf.read(rf.infolist()[0]).decode("utf-8").split("\n")
+    lines = rf.read(rf.infolist()[0]).decode("utf-8", "ignore").split("\n")
 
     if rar_file.endswith(tcmid_herb):
       # Skip the first line (columns) in this file
@@ -100,5 +100,17 @@ for rar_name in tcmid_source_rars:
             evalink("composition", "ConceptNode", "ConceptNode", compo_part, prescription)
             memblink(compo, "herb")
           memblink(prescription, "prescription")
+
+    elif rar_file.endswith(tcmid_spectrum):
+      # Skip the first line (columns) in this file
+      for line in lines[1:]:
+        print("--- Reading line: " + line)
+        if is_available(line):
+          contents = line.split("\t")
+          pinyin_name = contents[1]
+          spectrum_description = [x.lower().strip() for x in contents[6].split(";")]
+          for sd in spectrum_description:
+            if is_available(sd) and is_available(pinyin_name):
+              evalink("has_HPLC_description", "ConceptNode", "ConceptNode", pinyin_name, sd)
 
 out_fp.close()
