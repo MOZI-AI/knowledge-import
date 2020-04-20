@@ -90,7 +90,7 @@ for rar_name in tcmid_source_rars:
               evalink("has_property", "ConceptNode", "ConceptNode", pinyin_name, "TCM:" + prop)
           for meri in meridians:
             if is_available(pinyin_name) and is_available(meri):
-              evalink("targets_meridian", "ConceptNode", "ConceptNode", pinyin_name, "TCM:" + meri)
+              evalink("meridian_affinity", "ConceptNode", "ConceptNode", pinyin_name, "TCM:" + meri)
 
     elif rar_file.endswith(tcmid_prescription):
       # Skip the first line (columns) in this file
