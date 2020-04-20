@@ -1,6 +1,11 @@
-# python3 -m pip install rarfile
-# apt install unrar
-# PYTHONIOENCODING=utf-8 python3 tcmid.py
+# A script to convert TCMID to AtomSpace representation in Scheme
+#
+# Some additional dependencies may be required:
+#   apt install unrar
+#   python3 -m pip install rarfile
+#
+# To run the script:
+#   PYTHONIOENCODING=utf-8 python3 tcmid.py
 
 import os
 import rarfile
@@ -20,9 +25,9 @@ tcmid_source_rars = [
   # should be processed before tcmid_prescription
   tcmid_herb,
   tcmid_prescription,
-#  tcmid_network,
   tcmid_gnsp,
-  tcmid_spectrum
+  tcmid_spectrum,
+#  tcmid_network
 ]
 tcmid_base_url = "http://119.3.41.228:8000/static/download/"
 
