@@ -55,7 +55,7 @@ def memblink(node1, node2):
   out_fp.write(")\n")
 
 def is_available(entry):
-  return False if entry.strip() == "" or entry.strip().lower() == "na" or entry.strip().lower() == "n/a" else True
+  return False if entry == None or entry.strip() == "" or entry.strip().lower() == "na" or entry.strip().lower() == "n/a" else True
 
 # ----------
 # Keep a record of which part of a herb would be used in a formula
