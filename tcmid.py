@@ -188,8 +188,9 @@ for rar_name in tcmid_source_rars:
 
           if is_available(chebi_id):
             chebi_id_full = "ChEBI:" + chebi_id
+            uniprot_id_full = "Uniprot:" + uniprot_id
             if is_available(uniprot_id):
-              evalink("interacts_with", "MoleculeNode", "MoleculeNode", chebi_id_full, uniprot_id)
+              evalink("interacts_with", "MoleculeNode", "MoleculeNode", chebi_id_full, uniprot_id_full)
             if is_available(gene):
               evalink("interacts_with", "MoleculeNode", "GeneNode", chebi_id_full, gene)
 
