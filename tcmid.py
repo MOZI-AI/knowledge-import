@@ -175,4 +175,22 @@ for rar_name in tcmid_source_rars:
 
       chebi_fp.close()
 
+      for line in lines:
+        print("--- Reading line: " + line)
+        if is_available(line):
+          contents = line.split("\t")
+          ingredient = contents[0].lower().strip()
+          chebi_id = chebi_dict.get(ingredient)
+          uniprot_id = contents[2]
+          gene = contents[3]
+          omim_ids = contents[4].split(";")
+          drug_ids = contents[5].split(";")
+
+          if is_available(chebi_id):
+            chebi_id_full = "ChEBI:" + chebi_id
+            if is_available(uniprot_id):
+              evalink("interacts_with", "MoleculeNode", "MoleculeNode", chebi_id_full, uniprot_id)
+            if is_available(gene):
+              evalink("interacts_with", "MoleculeNode", "GeneNode", chebi_id_full, gene)
+
 out_fp.close()
