@@ -596,7 +596,7 @@ def build_request(url):
     return response
 
 
-pharma2uniprot_url = 'https://gist.githubusercontent.com/noskill/de50fb02df98952ac7cb3d3e03a7b9e2/raw/df6ec0cb2ac9dff3ca1555252c1323779d5fedc2/pharma2uniprot.tsv'
+pharma2uniprot_url = 'https://github.com/noskill/knowledge-import/raw/master/uniprot2pharmagkb.tab.gz'
 def download():
     pathway = 'https://s3.pgkb.org/data/pathways-biopax.zip' 
     genes = 'https://s3.pgkb.org/data/genes.zip'
@@ -605,7 +605,7 @@ def download():
     pathway_zip = ZipFile(BytesIO(build_request(pathway).read()))
     genes_zip = ZipFile(BytesIO(build_request(genes).read()))
     chem_zip = ZipFile(BytesIO(build_request(chemicals).read()))
-    pharma2uniprot = BytesIO(build_request(pharma2uniprot_url).read())
+    pharma2uniprot = GzipFile(fileobj=BytesIO(build_request(pharma2uniprot_url).read()))
     return pathway_zip, genes_zip, chem_zip, pharma2uniprot
 
 
@@ -619,7 +619,7 @@ def parse_args():
                         help='zip archive with genes data in tsv format')
     parser.add_argument('--output', type=str, default='/tmp/pharmagkb.scm',
                         help='path to output file')
-    parser.add_argument('--pharma2uniprot', type=str, default='./uniprot2pharmagkb.tab.gz',
+    parser.add_argument('--pharma2uniprot', type=str, default='',
                         help='path to pharma2uniprot file')
     return parser.parse_args()
 
@@ -651,7 +651,7 @@ def main():
         if args.pharma2uniprot:
             pharma2uniprot_file = GzipFile(args.pharma2uniprot)
         else:
-            pharma2uniprot_file = BytesIO(urllib.request.urlopen(pharma2uniprot_url).read())
+            pharma2uniprot_file = GzipFile(fileobj=BytesIO(urllib.request.urlopen(pharma2uniprot_url).read()))
     else:
         pathway_file, genes_file, chemicals_file, pharma2uniprot_file = download()
 
