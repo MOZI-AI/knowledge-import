@@ -373,7 +373,7 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
                                    pathway, ns, pathway_id, id_map, [])
     control_type = None
     if about(control, ns).startswith('pgkb.leadsTo'):
-        control_type = 'leads_to'
+        print("leadsTo control is not implemented")
     elif about(control, ns).startswith('pgkb.control.transport'):
         print("transport control is not implemented")
         id_map[about(control, ns)] = result
