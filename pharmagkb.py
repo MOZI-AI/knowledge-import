@@ -299,6 +299,14 @@ def wrap_set(molecules):
     return result
 
 
+def wrap_list(molecules):
+    if len(molecules) == 1:
+        result = molecules[0]
+    else:
+        result = CListLink(*molecules)
+    return result
+
+
 def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_name):
     result = list()
     left_elem = interaction.find('./bp:left', ns)
@@ -316,8 +324,8 @@ def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_na
     if left_mol and right_mol:
         ev = CEvaluationLink(
             CPredicateNode(interaction_name),
-            CListLink(wrap_set(left_mol),
-                        wrap_set(right_mol)))
+            CListLink(wrap_list(left_mol),
+                        wrap_list(right_mol)))
         result.append(ev)
     if not result:
         print("failed to parse {0}".format(about(interaction, ns)))
@@ -341,8 +349,8 @@ def gen_conversion(interaction, pathway, pathway_id, ns, id_map):
     if left and right:
         ev = CEvaluationLink(
                 CPredicateNode('conversion_of'),
-                CListLink(wrap_set(left),
-                        wrap_set(right)))
+                CListLink(wrap_list(left),
+                        wrap_list(right)))
         result.append(ev)
         id_map[about(interaction, ns)] = [ev]
     else:
@@ -388,8 +396,8 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
         res = CEvaluationLink(
                     CPredicateNode(control_name_map[control_type]),
                     CListLink(
-                        wrap_set(controller),
-                        wrap_set(controlled)))
+                        wrap_list(controller),
+                        wrap_list(controlled)))
         result.append(res)
     id_map[about(control, ns)] = result
     return result
@@ -413,8 +421,8 @@ def parse_catalysis(element, pathway, ns, pathway_id, id_map):
         res = CEvaluationLink(
                 CPredicateNode("catalysys_of"),
                 CListLink(
-                    wrap_set(controller),
-                    wrap_set(controlled)))
+                    wrap_list(controller),
+                    wrap_list(controlled)))
         result.append(res)
         id_map[about(element, ns)] = [res]
     else:
