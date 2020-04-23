@@ -156,7 +156,31 @@ def generate_locations(elem, ns, chemical_nodes, pathway_id):
     return result
 
 
-def parse_molecule(smallmolecule, ns, chem_data):
+def find_frame(*frames):
+    for frame in frames:
+        if len(frame) and str(frame.iloc[0]['ChEBI ID']) != 'nan' and str(frame.iloc[0]['ChEBI ID']):
+            return frame
+
+
+def fix_drugbank_name(db_id):
+    return 'DB' + '0' * (5 - len(db_id)) + db_id
+
+
+def find_chebi(pubchem, drugbank, name, drug_links):
+    frames = []
+    if pubchem:
+        frames.append(drug_links[drug_links['PubChem Substance ID'] == pubchem])
+        frames.append(drug_links[drug_links['PubChem Compound ID'] == pubchem])
+    if drugbank:
+        frames.append(drug_links[drug_links['DrugBank ID'] == fix_drugbank_name(drugbank)])
+    if name:
+        frames.append(drug_links[drug_links.Name.str.lower() == name])
+    frame = find_frame(*frames)
+    if frame is not None:
+        return frame.iloc[0]['ChEBI ID']
+
+
+def parse_molecule(smallmolecule, ns, chem_data, drug_links=None):
     """
     Parse SmallMolecule element
     
@@ -178,7 +202,7 @@ def parse_molecule(smallmolecule, ns, chem_data):
     reference = smallmolecule.find('bp:entityReference', ns)
     molecule_drug = dict()
     assert reference is not None
-    name = smallmolecule.find('./bp:standardName', ns).text.lower()
+    name = smallmolecule.find('./bp:standardName', ns).text.lower().strip()
     for value in reference.attrib.values():
         pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
         if pharma_pkg_id is None:
@@ -194,19 +218,38 @@ def parse_molecule(smallmolecule, ns, chem_data):
         else:
             pharma_pkg_id = pharma_pkg_id.group(1)
         molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
+
+    # try drug_links
+    if 'ChEBI' not in molecule_drug:
+        pubchem = molecule_drug.get('PubChem', '')
+        drugbank = molecule_drug.get('DrugBank', '')
+        if  drug_links is not None:
+            chebi = find_chebi(pubchem, drugbank, name, drug_links)
+            if chebi:
+                molecule_drug['ChEBI'] = chebi
+        if pharma_pkg_id is None:
+            pharma_pkg_id = ''
+        #name = name.replace('"', '\\"')
+        #with open('not_parsed.csv', 'at') as f:
+        #    f.write(pharma_pkg_id + '\t')
+        #    f.write(name + '\t')
+        #    f.write(pubchem + '\t')
+        #    f.write(drugbank + '\t')
+        #    f.write('\n')
     return molecule_drug, name
 
 
-def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map):
+def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, drug_links=None):
     tmp = list()
     for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
-        molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data)
+        molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data, drug_links)
         for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
             if db_name in molecule_drug:
                 molecule = CMoleculeNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
                 member = CMemberLink(molecule,
                                     CConceptNode(pathway_id))
                 break
+
         if not molecule_drug:
             # something unknown
             molecule = CConceptNode(name)
@@ -321,15 +364,18 @@ def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_na
     parse_elem(pathway.find('./*[@rdf:about="{0}"]'.format(right), ns), pathway, ns, pathway_id, id_map)      
     left_mol = id_map.get(left, ())
     right_mol = id_map.get(right, ())
+    ev = None
     if left_mol and right_mol:
         ev = CEvaluationLink(
             CPredicateNode(interaction_name),
             CListLink(wrap_list(left_mol),
                         wrap_list(right_mol)))
-        result.append(ev)
+        result.append(CContextLink(
+                        CConceptNode(pathway_id),
+                        ev))
     if not result:
         print("failed to parse {0}".format(about(interaction, ns)))
-    id_map[about(interaction, ns)] = result
+    id_map[about(interaction, ns)] = [] if ev is None else [ev]
     return result
 
 
@@ -388,7 +434,7 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
         return result
     else:
         control_type_elem = control.find('./bp:controlType', ns)
-        if control_type_elem:
+        if control_type_elem is not None:
             control_type = control_type_elem.text
         else:
             print("no control type in {0}".format(about(control, ns)))
@@ -418,12 +464,14 @@ def parse_catalysis(element, pathway, ns, pathway_id, id_map):
     controlled_elem = find_about_element(pathway, ns, controlled_id)
     controlled = process_component(controlled_elem, pathway, ns, pathway_id, id_map, result=result)
     if controlled and controller:
-        res = CEvaluationLink(
-                CPredicateNode("catalysys_of"),
-                CListLink(
-                    wrap_list(controller),
-                    wrap_list(controlled)))
-        result.append(res)
+        for cont in controller:
+            res = CEvaluationLink(
+                    CPredicateNode("catalysys_of"),
+                    CListLink(cont,
+                        wrap_list(controlled)))
+        result.append(
+            CContextLink(CConceptNode(pathway_id),
+                         res))
         id_map[about(element, ns)] = [res]
     else:
         id_map[about(element, ns)] = []
@@ -444,7 +492,6 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
         member = CMemberLink(node,
                         CConceptNode(pathway_id))
         id_map[about(elem, ns)] = [node]
-        result.append(node)
         result.append(member)
     elif elem.tag.endswith('PhysicalEntity'):
         print('PhysicalEntity as part of interaction is not supported {0}'.format(elem.find('./bp:standardName', ns).text))
@@ -534,7 +581,7 @@ def process_components(pathway, ns, pathway_id, id_map):
     return result
         
         
-def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns):
+def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns, drug_links):
     print("processing pathway {0} {1}".format(pathway_id, pathway_name))
     ev_name = CEvaluationLink(
                  CPredicateNode("has_name"),
@@ -543,7 +590,7 @@ def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, 
     tmp = [ev_name]
     id_map = dict()
     tmp += process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, id_map)
-    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map)
+    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, drug_links)
     tmp += process_components(pathway, ns, pathway_id, id_map)
     return '\n'.join([x.recursive_print() for x in tmp])
 
@@ -629,6 +676,8 @@ def parse_args():
                         help='path to output file')
     parser.add_argument('--pharma2uniprot', type=str, default='',
                         help='path to pharma2uniprot file')
+    parser.add_argument('--drugbank', type=str, default='',
+                        help='drugbank all drug links csv file')
     return parser.parse_args()
 
 
@@ -662,6 +711,11 @@ def main():
             pharma2uniprot_file = GzipFile(fileobj=BytesIO(urllib.request.urlopen(pharma2uniprot_url).read()))
     else:
         pathway_file, genes_file, chemicals_file, pharma2uniprot_file = download()
+    
+    drug_links = None
+    if args.drugbank:
+        # pandas like to convert everything to float, but i need strings
+        drug_links = pandas.read_csv(args.drugbank, converters={i: str for i in range(0, 30000)})
 
     chem_tsv = chemicals_file.open('chemicals.tsv')
     genes_tsv = genes_file.open('genes.tsv')
@@ -681,7 +735,9 @@ def main():
         pathway_id, pathway_name = get_pathway_id_name(tree, ns)
         if pathway_id is None:
             pathway_id = filename.split('-')[0]
-        res = convert_pathway(tree, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns)
+        res = convert_pathway(tree, chem_data, genes_data, 
+                              pharma2uniprot, pathway_id, pathway_name, ns,
+                              drug_links)
         output.write(res)
         output.write('\n' * 3)
     output.close()
