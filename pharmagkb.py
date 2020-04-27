@@ -156,31 +156,20 @@ def generate_locations(elem, ns, chemical_nodes, pathway_id):
     return result
 
 
-def find_frame(*frames):
-    for frame in frames:
-        if len(frame) and str(frame.iloc[0]['ChEBI ID']) != 'nan' and str(frame.iloc[0]['ChEBI ID']):
-            return frame
-
-
-def fix_drugbank_name(db_id):
-    return 'DB' + '0' * (5 - len(db_id)) + db_id
-
-
-def find_chebi(pubchem, drugbank, name, drug_links):
-    frames = []
-    if pubchem:
-        frames.append(drug_links[drug_links['PubChem Substance ID'] == pubchem])
-        frames.append(drug_links[drug_links['PubChem Compound ID'] == pubchem])
-    if drugbank:
-        frames.append(drug_links[drug_links['DrugBank ID'] == fix_drugbank_name(drugbank)])
+def find_chebi(pubchem, drugbank, name, pharma_id, pharma2chebi):
+    if pharma_id:
+        frame = pharma2chebi[pharma2chebi.pharma_id == pharma_id]
+        if len(frame):
+            assert len(set(frame['ChEBI'].to_list())) == 1
+            return frame.iloc[0]['ChEBI']
     if name:
-        frames.append(drug_links[drug_links.Name.str.lower() == name])
-    frame = find_frame(*frames)
-    if frame is not None:
-        return frame.iloc[0]['ChEBI ID']
+        frame = pharma2chebi[pharma2chebi.Name == name]
+        if len(frame):
+            assert len(frame) == 1
+            return frame.iloc[0]['ChEBI']
 
 
-def parse_molecule(smallmolecule, ns, chem_data, drug_links=None):
+def parse_molecule(smallmolecule, ns, chem_data, pharma2chebi=None):
     """
     Parse SmallMolecule element
     
@@ -219,12 +208,12 @@ def parse_molecule(smallmolecule, ns, chem_data, drug_links=None):
             pharma_pkg_id = pharma_pkg_id.group(1)
         molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
 
-    # try drug_links
+    # try pharma2chebi
     if 'ChEBI' not in molecule_drug:
         pubchem = molecule_drug.get('PubChem', '')
         drugbank = molecule_drug.get('DrugBank', '')
-        if  drug_links is not None:
-            chebi = find_chebi(pubchem, drugbank, name, drug_links)
+        if  pharma2chebi is not None:
+            chebi = find_chebi(pubchem, drugbank, name, pharma_pkg_id, pharma2chebi)
             if chebi:
                 molecule_drug['ChEBI'] = chebi
         if pharma_pkg_id is None:
@@ -239,22 +228,23 @@ def parse_molecule(smallmolecule, ns, chem_data, drug_links=None):
     return molecule_drug, name
 
 
-def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, drug_links=None):
+def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2chebi=None):
     tmp = list()
     for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
-        molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data, drug_links)
+        molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data, pharma2chebi)
+        molecule = CMoleculeNode(name)
+        member = CMemberLink(molecule,
+                    CConceptNode(pathway_id))
         for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
             if db_name in molecule_drug:
-                molecule = CMoleculeNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
-                member = CMemberLink(molecule,
-                                    CConceptNode(pathway_id))
-                break
-
-        if not molecule_drug:
-            # something unknown
-            molecule = CConceptNode(name)
-            member = CMemberLink(molecule,
-                                CConceptNode(pathway_id))
+                name_node = CConceptNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
+                ctx = CContextLink(
+                        CConceptNode(pathway_id),
+                        CEvaluationLink(
+                            CPredicateNode("has_{0}_id".format(db_name.lower())),
+                            CListLink(molecule,
+                                    name_node)))
+                tmp.append(ctx)
         tmp.append(member)
         id_map[about(smallmolecule, ns)] = [molecule]
         tmp += generate_locations(smallmolecule, ns, [molecule], pathway_id)
@@ -581,7 +571,7 @@ def process_components(pathway, ns, pathway_id, id_map):
     return result
         
         
-def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns, drug_links):
+def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns, pharma2chebi):
     print("processing pathway {0} {1}".format(pathway_id, pathway_name))
     ev_name = CEvaluationLink(
                  CPredicateNode("has_name"),
@@ -590,7 +580,7 @@ def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, 
     tmp = [ev_name]
     id_map = dict()
     tmp += process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, id_map)
-    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, drug_links)
+    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2chebi)
     tmp += process_components(pathway, ns, pathway_id, id_map)
     return '\n'.join([x.recursive_print() for x in tmp])
 
@@ -652,6 +642,7 @@ def build_request(url):
 
 
 pharma2uniprot_url = 'https://github.com/noskill/knowledge-import/raw/master/uniprot2pharmagkb.tab.gz'
+pharma2chebi_url = 'https://github.com/noskill/knowledge-import/raw/master/pharma2chebi.tsv'
 def download():
     pathway = 'https://s3.pgkb.org/data/pathways-biopax.zip' 
     genes = 'https://s3.pgkb.org/data/genes.zip'
@@ -661,7 +652,9 @@ def download():
     genes_zip = ZipFile(BytesIO(build_request(genes).read()))
     chem_zip = ZipFile(BytesIO(build_request(chemicals).read()))
     pharma2uniprot = GzipFile(fileobj=BytesIO(build_request(pharma2uniprot_url).read()))
-    return pathway_zip, genes_zip, chem_zip, pharma2uniprot
+    
+    pharma2chebi = BytesIO(build_request(pharma2chebi_url).read())
+    return pathway_zip, genes_zip, chem_zip, pharma2uniprot, pharma2chebi
 
 
 def parse_args():
@@ -676,8 +669,8 @@ def parse_args():
                         help='path to output file')
     parser.add_argument('--pharma2uniprot', type=str, default='',
                         help='path to pharma2uniprot file')
-    parser.add_argument('--drugbank', type=str, default='',
-                        help='drugbank all drug links csv file')
+    parser.add_argument('--pharma2chebi', type=str, default='',
+                        help='pharma2chebi mapping file')
     return parser.parse_args()
 
 
@@ -709,13 +702,16 @@ def main():
             pharma2uniprot_file = GzipFile(args.pharma2uniprot)
         else:
             pharma2uniprot_file = GzipFile(fileobj=BytesIO(urllib.request.urlopen(pharma2uniprot_url).read()))
+        # file is small, handle it separately
+        if args.pharma2chebi:
+            pharma2chebi_file = open(args.pharma2chebi)
+        else:
+            pharma2chebi_file = BytesIO(urllib.request.urlopen(pharma2chebi_url).read())
     else:
-        pathway_file, genes_file, chemicals_file, pharma2uniprot_file = download()
+        pathway_file, genes_file, chemicals_file, pharma2uniprot_file, pharma2chebi_file = download()
     
-    drug_links = None
-    if args.drugbank:
-        # pandas like to convert everything to float, but i need strings
-        drug_links = pandas.read_csv(args.drugbank, converters={i: str for i in range(0, 30000)})
+    # ensure that chibi id are strings
+    pharma2chebi = pandas.read_csv(pharma2chebi_file, converters={i: str for i in range(0, 30000)}, sep='\t')
 
     chem_tsv = chemicals_file.open('chemicals.tsv')
     genes_tsv = genes_file.open('genes.tsv')
@@ -737,7 +733,7 @@ def main():
             pathway_id = filename.split('-')[0]
         res = convert_pathway(tree, chem_data, genes_data, 
                               pharma2uniprot, pathway_id, pathway_name, ns,
-                              drug_links)
+                              pharma2chebi)
         output.write(res)
         output.write('\n' * 3)
     output.close()
