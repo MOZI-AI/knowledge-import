@@ -189,9 +189,14 @@ for rar_name in tcmid_source_rars:
           full_name = "ChEBI:" + chebi_id if is_available(chebi_id) else "TCM:" + ingredient
 
           if is_available(uniprot_id):
-            uniprot_id_full = "Uniprot:" + uniprot_id
-            evalink("interacts_with", "MoleculeNode", "MoleculeNode", full_name, uniprot_id_full)
+            evalink("interacts_with", "MoleculeNode", "MoleculeNode", full_name, "Uniprot:" + uniprot_id)
           if is_available(gene):
             evalink("interacts_with", "MoleculeNode", "GeneNode", full_name, gene)
+          for omim in omim_ids:
+            if is_available(omim):
+              evalink("treats", "MoleculeNode", "ConceptNode", full_name, "OMIM:" + omim)
+          for drug in drug_ids:
+            if is_available(drug) and is_available(uniprot_id):
+              evalink("targets", "MoleculeNode", "MoleculeNode", "DrugBank:" + drug, "Uniprot:" + uniprot_id)
 
 out_fp.close()
