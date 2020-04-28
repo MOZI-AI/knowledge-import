@@ -6,20 +6,21 @@ __email__ = "abelikov@singularitynet.io"
 
 
 class CAtom:
-    pass
+    def __hash__(self):
+        return hash(str(self))
 
 
 class CNode(CAtom):
+    atom_type = None
     def __init__(self, name):
         self.name = name
-        if name == 'HLA-B *57:01:01':
-            import pdb;pdb.set_trace()
 
     def __str__(self):
         return '({0} "{1}")'.format(self.atom_type, self.name.replace('"', '\\"')) 
 
     def recursive_print(self, result='', indent=''):
         return result + indent + str(self)
+
 
 
 class CLink(CAtom):
@@ -60,4 +61,14 @@ class CListLink(CLink):
 class CGeneNode(CNode):
     atom_type = 'GeneNode'
 
+class CContextLink(CLink):
+    atom_type = 'ContextLink'
 
+
+class CSetLink(CLink):
+    atom_type = 'SetLink'
+
+    def __str__(self):
+        # str is used for hash computation, so need to sort outgoing set for all unordered links
+        outgoing = '\n'.join(sorted([str(x) for x in self.outgoing]))
+        return '({0} {1})'.format(self.atom_type, outgoing)
