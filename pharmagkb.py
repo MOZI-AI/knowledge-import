@@ -11,6 +11,7 @@ import urllib.request
 import argparse
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
+from gzip import GzipFile
 from io import BytesIO
 import pandas
 from atomwrappers import *
@@ -64,39 +65,8 @@ def pharma_to_id(chem_table, name):
     return chemical_id
 
 
-def gen_chemical_members(mol_id_map, pathway_id):
-    """
-    Generate member links for the substance pointed mol_id_map
-    
-    Parameters
-    ----------
-    mol_id_map: dict
-        Database name, id pairs
-    pathway_id: str
-        pharma gkb id for pathway
-        
-    Returns
-    -------
-    tuple[list, list]
-        member links connecting substance to pathway
-        MoleculeNodes for the substance
-    """
-    tmp = list()
-    molecules = list()
-    for (id_type, mol_id) in mol_id_map.items():
-        molecule = CMoleculeNode('{0}:{1}'.format(id_type, mol_id))
-        member = CMemberLink(molecule,
-                             CConceptNode(pathway_id))
-        tmp.append(member)
-        molecules.append(molecule)
-    return tmp, molecules
 
-
-gene_re = re.compile('([A-Z0-9-]*).*')
 def gen_gene_member(gene, pathway_id, organism=None):
-    match = gene_re.match(gene)
-    assert match is not None
-    gene = match.group(1)
     result = []
     member = CMemberLink(CGeneNode(gene), CConceptNode(pathway_id))
     result.append(member)
@@ -125,14 +95,15 @@ def process_genes(genes_str, pathway_id, organism=None):
             tmp += gen_gene_member(gene.strip(), pathway_id, organism=organism)
     return tmp
 
+
 uniprot_re = re.compile('.*UniProtKB:([A-Za-z0-9-]+).*')
-def gen_proteins(pharma_id, pathway_id, genes_data):
+def gen_proteins(pharma_id, name, pathway_id, pharma2uniprot):
     """
     Generate member links for the protein pointed by pharmagkb id
     
     Parameters
     ----------
-    pharma_id: str
+    pharma_id: List[str]
         pharma gkb id for protein
     pathway_id: str
         pharma gkb id for pathway
@@ -147,20 +118,18 @@ def gen_proteins(pharma_id, pathway_id, genes_data):
     """
     tmp = []
     proteins = []
-    gene = genes_data[genes_data['PharmGKB Accession Id'] == pharma_id]
-    if len(gene) == 0:
-        print("no gene for {0} in genes table".format(pharma_id))
-        return tmp, proteins
-    assert len(gene) == 1
-    for ref in gene['Cross-references'].tolist()[0].split(','):
-        match = uniprot_re.match(ref)
-        if match:
-            for prot_id in match.groups():
-                members, molecules = gen_chemical_members({'Uniprot': prot_id}, pathway_id)
-                tmp += members
-                proteins += molecules
-        else:
-            assert 'uniprot' not in ref.lower()
+    for prot in pharma_id:
+        entry = pharma2uniprot[pharma2uniprot.pharma_id == prot + ';']
+        if not len(entry):
+            print("not found uniprot id for {0}".format(name))
+            continue
+        for i in range(len(entry)):
+            prot_id = entry.iloc[i].Entry
+            molecule = CMoleculeNode('Uniprot:{0}'.format(prot_id))
+            member = CMemberLink(molecule,
+                                CConceptNode(pathway_id))
+            tmp.append(member)
+            proteins.append(molecule)
     return tmp, proteins
 
 
@@ -187,76 +156,432 @@ def generate_locations(elem, ns, chemical_nodes, pathway_id):
     return result
 
 
-def process_small_molecules(pathway, ns, pathway_id, chem_data):
+def find_chebi(pubchem, drugbank, name, pharma_id, pharma2chebi):
+    if pharma_id:
+        frame = pharma2chebi[pharma2chebi.pharma_id == pharma_id]
+        if len(frame):
+            assert len(set(frame['ChEBI'].to_list())) == 1
+            return frame.iloc[0]['ChEBI']
+    if name:
+        frame = pharma2chebi[pharma2chebi.Name == name]
+        if len(frame):
+            assert len(frame) == 1
+            return frame.iloc[0]['ChEBI']
+
+
+def parse_molecule(smallmolecule, ns, chem_data, pharma2chebi=None):
+    """
+    Parse SmallMolecule element
+    
+    Parameters
+    ----------
+    smallmolecule: xml.etree.ElementTree.Element
+        SmallMolecule
+    ns: dict
+        namespaces from the owl file
+    chem_data: pandas.DataFrame
+        table chemicals from pharagkb
+    
+    Returns
+    -------
+    dict, str
+        external db name: id pairs
+        human readable name
+    """
+    reference = smallmolecule.find('bp:entityReference', ns)
+    molecule_drug = dict()
+    assert reference is not None
+    name = smallmolecule.find('./bp:standardName', ns).text.lower().strip()
+    for value in reference.attrib.values():
+        pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
+        if pharma_pkg_id is None:
+            # try by standard name
+
+            row = chem_data[chem_data.Name == name]
+            if len(row):
+                assert len(row) == 1
+                pharma_pkg_id = row.iloc[0]['PharmGKB Accession Id']
+            else:
+                print("no pharmapkg id for {0}".format(value))
+                continue
+        else:
+            pharma_pkg_id = pharma_pkg_id.group(1)
+        molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
+
+    # try pharma2chebi
+    if 'ChEBI' not in molecule_drug:
+        pubchem = molecule_drug.get('PubChem', '')
+        drugbank = molecule_drug.get('DrugBank', '')
+        if  pharma2chebi is not None:
+            chebi = find_chebi(pubchem, drugbank, name, pharma_pkg_id, pharma2chebi)
+            if chebi:
+                molecule_drug['ChEBI'] = chebi
+        if pharma_pkg_id is None:
+            pharma_pkg_id = ''
+        #name = name.replace('"', '\\"')
+        #with open('not_parsed.csv', 'at') as f:
+        #    f.write(pharma_pkg_id + '\t')
+        #    f.write(name + '\t')
+        #    f.write(pubchem + '\t')
+        #    f.write(drugbank + '\t')
+        #    f.write('\n')
+    return molecule_drug, name
+
+
+def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2chebi=None):
     tmp = list()
     for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
-        reference = smallmolecule.find('bp:entityReference', ns)
-        assert reference is not None
-        for value in reference.attrib.values():
-            pharma_pkg_id = re.match('.*\.(PA\d+)\.?.*', value)
-            if pharma_pkg_id is None:
-                # try by standard name
-                name = smallmolecule.find('./bp:standardName', ns).text.lower()
-                row = chem_data[chem_data.Name == name]
-                if len(row):
-                    assert len(row) == 1
-                    pharma_pkg_id = row.iloc[0]['PharmGKB Accession Id']
-                else:
-                    print("no pharmapkg id for {0}".format(value))
-                    continue
-            else:
-                pharma_pkg_id = pharma_pkg_id.group(1)
-            molecule_drug = pharma_to_id(chem_data, pharma_pkg_id)
-            members, chemical_nodes = gen_chemical_members(molecule_drug, pathway_id)
-            tmp += generate_locations(smallmolecule, ns, chemical_nodes, pathway_id)
-            tmp += members
+        molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data, pharma2chebi)
+        molecule = CMoleculeNode(name)
+        member = CMemberLink(molecule,
+                    CConceptNode(pathway_id))
+        for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
+            if db_name in molecule_drug:
+                name_node = CConceptNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
+                ctx = CContextLink(
+                        CConceptNode(pathway_id),
+                        CEvaluationLink(
+                            CPredicateNode("has_{0}_id".format(db_name.lower())),
+                            CListLink(molecule,
+                                    name_node)))
+                tmp.append(ctx)
+        tmp.append(member)
+        id_map[about(smallmolecule, ns)] = [molecule]
+        tmp += generate_locations(smallmolecule, ns, [molecule], pathway_id)
+            
     return tmp
  
- 
-def process_proteins(pathway, ns, pathway_id, genes_data):
+
+def match_protein_id(value):
+    match = protein_ref_re.match(value)
+    if match:
+        return match.group(2)
+    else:
+        assert 'PA' not in value
+    return None
+
+
+def parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemical_map, tmp=None):
+    name = protein.find('./bp:standardName', ns).text
+    protein_elem_id = about(protein, ns)
+    if protein_elem_id in elem_chemical_map:
+        return elem_chemical_map[protein_elem_id]
+
+    organism = None
+    if name.strip().startswith('HIV'):
+        organism = '12721'
+    reference_elem = protein.find('./bp:entityReference', ns)
+    if reference_elem is None:
+        print("failed to find reference for {0}".format(protein_elem_id))
+        elem_chemical_map[protein_elem_id] = []
+        return []
+    ent_ref_id = resource(reference_elem, ns)
+    ent_ref = pathway.find('./*[@rdf:about="{0}"]'.format(ent_ref_id), ns)
+    protein_ref_id = []
+    if ent_ref.tag.endswith('ProteinReference'):
+        # it is ether protein group or a protein
+        xref = ent_ref.find('./bp:xref', ns)
+        if xref is not None:
+            value = resource(xref, ns)
+            prot_id = match_protein_id(value)
+            if prot_id:
+                protein_ref_id.append(prot_id)
+        else:
+            # protein group
+            for ent_mem in ent_ref.findall('./bp:memberEntityReference', ns):
+                value = resource(ent_mem, ns)
+                prot_id = match_protein_id(value)
+                if prot_id:
+                    protein_ref_id.append(prot_id)
+    else:
+        import pdb;pdb.set_trace()
+    if protein_ref_id is not None:
+        members, protein_nodes = gen_proteins(protein_ref_id, name, pathway_id, pharma2uniprot)
+        elem_chemical_map[protein_elem_id] = protein_nodes
+        if tmp is not None:
+            tmp += generate_locations(protein, ns, protein_nodes, pathway_id)
+            tmp += members
+    else:
+        # give up
+        name = protein.find('./bp:standardName', ns).text
+        print("can't map protein to uniprot for {0}".format(name))
+        return None
+    return elem_chemical_map.get(protein_elem_id, None)
+
+
+def process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, elem_chemical_map):
     tmp = list()
     # properties often don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
-        name = protein.find('./bp:standardName', ns).text
-        organism = None
-        if name.strip().startswith('HIV'):
-            organism = '12721'
-        tmp += process_genes(name, pathway_id, organism) 
-        protein_ref_id = None
-        for key, value in protein.attrib.items():
-            match = protein_ref_re.match(value)
-            if match:
-                protein_ref_id = match.group(1)
-        if protein_ref_id is None:
-            for ent_ref in protein.findall('./bp:entityReference', ns):
-                for value in ent_ref.attrib.values():
-                    match = protein_ref_re.match(value)
-                    if match:
-                        protein_ref_id = match.group(1)
-                    else:
-                        assert 'PA' not in value
-        if protein_ref_id is None:
-           # give up
-           name = protein.find('./bp:standardName', ns).text
-           print("can't map protein to uniprot for {0}".format(name))
-           continue
-        members, protein_nodes = gen_proteins(protein_ref_id, pathway_id, genes_data)
-        tmp += generate_locations(protein, ns, protein_nodes, pathway_id)
-        tmp += members
+        parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemical_map, tmp=tmp)
     return tmp
 
 
-protein_ref_re = re.compile('pgkb.[a-z0-9]+.[A-Za-z0-9]+.*(PA\d+).*')
+
+protein_ref_re = re.compile('.*(\.|/)(PA\d+)')
 go_location_re = re.compile('.*(GO:\d+).*')
-def convert_pathway(pathway, chem_data, genes_data, pathway_id, pathway_name, ns):
+drug_re = re.compile('pgkb.drug.*(PA\d+)')
+
+
+
+def wrap_set(molecules):
+    if len(molecules) == 1:
+        result = molecules[0]
+    else:
+        result = CSetLink(*molecules)
+    return result
+
+
+def wrap_list(molecules):
+    if len(molecules) == 1:
+        result = molecules[0]
+    else:
+        result = CListLink(*molecules)
+    return result
+
+
+def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_name):
+    result = list()
+    left_elem = interaction.find('./bp:left', ns)
+    right_elem = interaction.find('./bp:right', ns)
+    if left_elem is None or right_elem is None:
+        print("din't find \"from\" participant in interaction {0}".format(about(interaction, ns)))
+        id_map[about(interaction, ns)] = result
+        return result
+    left = resource(left_elem, ns)
+    right = resource(right_elem, ns)
+    parse_elem(pathway.find('./*[@rdf:about="{0}"]'.format(left), ns), pathway, ns, pathway_id, id_map)
+    parse_elem(pathway.find('./*[@rdf:about="{0}"]'.format(right), ns), pathway, ns, pathway_id, id_map)      
+    left_mol = id_map.get(left, ())
+    right_mol = id_map.get(right, ())
+    ev = None
+    if left_mol and right_mol:
+        ev = CEvaluationLink(
+            CPredicateNode(interaction_name),
+            CListLink(wrap_list(left_mol),
+                        wrap_list(right_mol)))
+        result.append(CContextLink(
+                        CConceptNode(pathway_id),
+                        ev))
+    if not result:
+        print("failed to parse {0}".format(about(interaction, ns)))
+    id_map[about(interaction, ns)] = [] if ev is None else [ev]
+    return result
+
+
+def parse_subelements(interaction, xpath, pathway, pathway_id, ns, id_map):
+    left_items = list()
+    for left in interaction.findall(xpath, ns):
+        left_id = resource(left, ns)
+        parse_elem(pathway.find('./*[@rdf:about="{0}"]'.format(left_id), ns), pathway, ns, pathway_id, id_map)
+        left_items += id_map.get(left_id, [])
+    return left_items
+
+
+def gen_conversion(interaction, pathway, pathway_id, ns, id_map):
+    result = list()
+    left = parse_subelements(interaction, './bp:left', pathway, pathway_id, ns, id_map)
+    right = parse_subelements(interaction, './bp:right', pathway, pathway_id, ns, id_map)
+    if left and right:
+        ev = CEvaluationLink(
+                CPredicateNode('conversion_of'),
+                CListLink(wrap_list(left),
+                        wrap_list(right)))
+        result.append(ev)
+        id_map[about(interaction, ns)] = [ev]
+    else:
+        id_map[about(interaction, ns)] = []
+    return result
+
+
+control_name_map = dict()
+control_name_map['ACTIVATION'] = 'activation_of'
+control_name_map['INHIBITION'] = 'inhibition_of'
+control_name_map['leads_to'] = 'leads_to'
+
+
+def parse_control(control, pathway, ns, pathway_id, id_map):
+    result = list()
+    controller_el = control.find('./bp:controller', ns)
+    if controller_el is None:
+        print("no controller in {0}".format(about(control, ns)))
+        id_map[about(control, ns)] = result
+        return result
+    controller_id = resource(controller_el, ns)
+    controller = process_component(pathway.find('./*[@rdf:about="{0}"]'.format(controller_id), ns), 
+                                   pathway, ns, pathway_id, id_map, [])
+    # controlled is a some interaction or control
+    controlled_id = control.find('./bp:controlled[@rdf:resource]', ns).attrib['{{{0}}}resource'.format(ns['rdf'])]
+
+    controlled = process_component(pathway.find('./*[@rdf:about="{0}"]'.format(controlled_id), ns), 
+                                   pathway, ns, pathway_id, id_map, [])
+    control_type = None
+    if about(control, ns).startswith('pgkb.leadsTo'):
+        print("leadsTo control is not implemented")
+    elif about(control, ns).startswith('pgkb.control.transport'):
+        print("transport control is not implemented")
+        id_map[about(control, ns)] = result
+        return result
+    else:
+        control_type_elem = control.find('./bp:controlType', ns)
+        if control_type_elem is not None:
+            control_type = control_type_elem.text
+        else:
+            print("no control type in {0}".format(about(control, ns)))
+    if controlled and controller and control_type:
+        res = CEvaluationLink(
+                    CPredicateNode(control_name_map[control_type]),
+                    CListLink(
+                        wrap_list(controller),
+                        wrap_list(controlled)))
+        result.append(res)
+    id_map[about(control, ns)] = result
+    return result
+    
+
+def parse_catalysis(element, pathway, ns, pathway_id, id_map):
+    result = list()
+    controller_el = element.find('./bp:controller', ns)
+    if controller_el is None:
+        print("failed to parse - no controller in Catalysis {0}".format(about(element, ns)))
+        id_map[about(element, ns)] = []
+        return result
+    controller_id = resource(controller_el, ns)
+    controller = process_component(pathway.find('./*[@rdf:about="{0}"]'.format(controller_id), ns), 
+                                   pathway, ns, pathway_id, id_map, result=result)
+    # controled is a some interaction
+    controlled_id = resource(element.find('./bp:controlled[@rdf:resource]', ns), ns)
+    controlled_elem = find_about_element(pathway, ns, controlled_id)
+    controlled = process_component(controlled_elem, pathway, ns, pathway_id, id_map, result=result)
+    if controlled and controller:
+        for cont in controller:
+            res = CEvaluationLink(
+                    CPredicateNode("catalysys_of"),
+                    CListLink(cont,
+                        wrap_list(controlled)))
+        result.append(
+            CContextLink(CConceptNode(pathway_id),
+                         res))
+        id_map[about(element, ns)] = [res]
+    else:
+        id_map[about(element, ns)] = []
+    return result
+
+
+def find_about_element(pathway, ns, elem_id):
+    return pathway.find('./*[@rdf:about="{0}"]'.format(elem_id), ns)
+
+
+def parse_elem(elem, pathway, ns, pathway_id, id_map):
+    result = list()
+    if about(elem, ns) in id_map:
+        return id_map[about(elem, ns)]
+    if elem.tag.endswith('Complex'):
+        name = elem.find('./bp:standardName', ns).text
+        node = CConceptNode(name)
+        member = CMemberLink(node,
+                        CConceptNode(pathway_id))
+        id_map[about(elem, ns)] = [node]
+        result.append(member)
+    elif elem.tag.endswith('PhysicalEntity'):
+        print('PhysicalEntity as part of interaction is not supported {0}'.format(elem.find('./bp:standardName', ns).text))
+        id_map[about(elem, ns)] = []
+    elif elem.tag.endswith('Pathway'):
+        name = elem.find('./bp:standardName', ns).text
+        print("Pathway as component of interaction is not supported: {0}".format(name))
+        id_map[about(elem, ns)] = []
+        return result
+    elif elem.tag.endswith('Dna') or elem.tag.endswith('Rna'):
+        print("Dna and Rna as component of interaction is not supported: {0}".format(about(elem, ns)))
+        id_map[about(elem, ns)] = []
+        return result
+    else:
+        import pdb;pdb.set_trace()
+    return result
+        
+        
+        
+def about(elem, ns):
+    ab = '{{{0}}}about'.format(ns['rdf'])
+    return elem.attrib[ab]
+
+def resource(elem, ns):
+    res = '{{{0}}}resource'.format(ns['rdf'])
+    return elem.attrib[res]
+
+
+def parse_interaction(interaction, pathway, ns, pathway_id, id_map):
+    result = []
+    perticipant_el = interaction.findall('./bp:participant', ns)
+    if not perticipant_el:
+        print("no participant in interaction: {0}".format(about(interaction, ns)))
+        id_map[about(interaction, ns)] = []
+    else:
+        participant_id = [resource(p, ns) for p in perticipant_el]
+        for par_id in participant_id:
+            participant = find_about_element(pathway, ns, par_id)
+            parse_elem(participant, pathway, ns, pathway_id, id_map)
+            result += id_map.get(par_id, [])
+        # it is subiteraction, replace it with it's participant
+        id_map[about(interaction, ns)] = result
+    return result
+
+
+def process_component(interaction, pathway, ns, pathway_id, id_map, result):
+    interaction_name = interaction.tag.split('}')[-1]
+    if about(interaction, ns) in id_map:
+        return id_map[about(interaction, ns)]
+    if interaction_name == 'BiochemicalReaction':
+        result += gen_interaction(interaction, pathway, pathway_id, ns, id_map, 'reaction')
+    elif interaction_name == 'Transport':
+        result += gen_interaction(interaction, pathway, pathway_id, ns, id_map, 'transport_of')
+    elif interaction_name == 'Catalysis':
+        result += parse_catalysis(interaction, pathway, ns, pathway_id, id_map)
+    elif interaction_name == 'Interaction':
+        result += parse_interaction(interaction, pathway, ns, pathway_id, id_map)
+    elif interaction_name == 'Control':
+        result += parse_control(interaction, pathway, ns, pathway_id, id_map)
+    elif interaction_name == 'Conversion':
+        result += gen_conversion(interaction, pathway, pathway_id, ns, id_map)
+    elif interaction_name == 'Pathway':
+        result += parse_elem(interaction, pathway, ns, pathway_id, id_map)
+    elif interaction_name == 'ComplexAssembly':
+        print("ComplexAssembly parsing is not yet implemented")
+        id_map[about(interaction, ns)] = []
+    elif interaction_name == 'Complex':
+        print("Complex parsing is not yet implemented")
+        id_map[about(interaction, ns)] = []
+    elif interaction_name == 'Degradation':
+        print("Degradation parsing is not yet implemented")
+        id_map[about(interaction, ns)] = []
+    elif interaction_name == 'TemplateReactionRegulation':
+        print("TemplateReactionRegulation parsing is not yet implemented")
+        id_map[about(interaction, ns)] = []
+    else:
+        import pdb;pdb.set_trace()
+    return id_map[about(interaction, ns)]
+
+
+def process_components(pathway, ns, pathway_id, id_map):
+    result = list()
+    for component in pathway.findall('bp:Pathway/bp:pathwayComponent', ns):
+        for comp in component.attrib.values():
+            interaction = pathway.find('./*[@rdf:about="{0}"]'.format(comp), ns)
+            process_component(interaction, pathway, ns, pathway_id, id_map, result=result)
+    return result
+        
+        
+def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, pathway_name, ns, pharma2chebi):
     print("processing pathway {0} {1}".format(pathway_id, pathway_name))
     ev_name = CEvaluationLink(
                  CPredicateNode("has_name"),
                  CListLink(CConceptNode(pathway_id),
                            CConceptNode(pathway_name)))
     tmp = [ev_name]
-    tmp += process_proteins(pathway, ns, pathway_id, genes_data)
-    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data)
+    id_map = dict()
+    tmp += process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, id_map)
+    tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2chebi)
+    tmp += process_components(pathway, ns, pathway_id, id_map)
     return '\n'.join([x.recursive_print() for x in tmp])
 
 
@@ -316,14 +641,20 @@ def build_request(url):
     return response
 
 
+pharma2uniprot_url = 'https://github.com/noskill/knowledge-import/raw/master/uniprot2pharmagkb.tab.gz'
+pharma2chebi_url = 'https://github.com/noskill/knowledge-import/raw/master/pharma2chebi.tsv'
 def download():
     pathway = 'https://s3.pgkb.org/data/pathways-biopax.zip' 
     genes = 'https://s3.pgkb.org/data/genes.zip'
     chemicals = 'https://s3.pgkb.org/data/chemicals.zip'
+
     pathway_zip = ZipFile(BytesIO(build_request(pathway).read()))
     genes_zip = ZipFile(BytesIO(build_request(genes).read()))
     chem_zip = ZipFile(BytesIO(build_request(chemicals).read()))
-    return pathway_zip, genes_zip, chem_zip
+    pharma2uniprot = GzipFile(fileobj=BytesIO(build_request(pharma2uniprot_url).read()))
+    
+    pharma2chebi = BytesIO(build_request(pharma2chebi_url).read())
+    return pathway_zip, genes_zip, chem_zip, pharma2uniprot, pharma2chebi
 
 
 def parse_args():
@@ -336,7 +667,28 @@ def parse_args():
                         help='zip archive with genes data in tsv format')
     parser.add_argument('--output', type=str, default='/tmp/pharmagkb.scm',
                         help='path to output file')
+    parser.add_argument('--pharma2uniprot', type=str, default='',
+                        help='path to pharma2uniprot file')
+    parser.add_argument('--pharma2chebi', type=str, default='',
+                        help='pharma2chebi mapping file')
     return parser.parse_args()
+
+
+def remove_duplicates(pharma2uniprot):
+    loc_entry = ([(i,pharma2uniprot.iloc[i]) for (i,x) in enumerate(pharma2uniprot['Cross-reference (PharmGKB)'].tolist()) if x.count('PA') > 1])
+    table = pharma2uniprot.iloc[0:0]
+    prev_iloc = 0
+    for (iloc, entry) in loc_entry:
+        table = table.append(pharma2uniprot.iloc[prev_iloc: iloc])
+        for pharma_gkb_id in entry['Cross-reference (PharmGKB)'].split(';'):
+            if pharma_gkb_id:
+                new_entry = entry.copy()
+                new_entry['Cross-reference (PharmGKB)'] = pharma_gkb_id + ';'
+                table = table.append(new_entry)
+        prev_iloc = iloc + 1
+    table = table.append(pharma2uniprot.iloc[prev_iloc:])
+    table = table.rename(columns={'Cross-reference (PharmGKB)': 'pharma_id'})
+    return table
 
 
 def main():
@@ -345,14 +697,29 @@ def main():
         pathway_file = ZipFile(BytesIO(open(args.pathways, 'rb').read()))
         chemicals_file = ZipFile(BytesIO(open(args.chemicals, 'rb').read()))
         genes_file = ZipFile(BytesIO(open(args.genes, 'rb').read()))
+        # file is small, handle it separately
+        if args.pharma2uniprot:
+            pharma2uniprot_file = GzipFile(args.pharma2uniprot)
+        else:
+            pharma2uniprot_file = GzipFile(fileobj=BytesIO(urllib.request.urlopen(pharma2uniprot_url).read()))
+        # file is small, handle it separately
+        if args.pharma2chebi:
+            pharma2chebi_file = open(args.pharma2chebi)
+        else:
+            pharma2chebi_file = BytesIO(urllib.request.urlopen(pharma2chebi_url).read())
     else:
-        pathway_file, genes_file, chemicals_file = download()
+        pathway_file, genes_file, chemicals_file, pharma2uniprot_file, pharma2chebi_file = download()
+    
+    # ensure that chibi id are strings
+    pharma2chebi = pandas.read_csv(pharma2chebi_file, converters={i: str for i in range(0, 30000)}, sep='\t')
+
     chem_tsv = chemicals_file.open('chemicals.tsv')
     genes_tsv = genes_file.open('genes.tsv')
 
     genes_data = pandas.read_csv(genes_tsv, sep="\t")
     chem_data = pandas.read_csv(chem_tsv, sep="\t")
-
+    pharma2uniprot = remove_duplicates(pandas.read_csv(pharma2uniprot_file, sep='\t'))
+    
     pathway_files = [x for x in pathway_file.namelist() if x.endswith('.owl')]
 
     out_path = args.output
@@ -364,7 +731,9 @@ def main():
         pathway_id, pathway_name = get_pathway_id_name(tree, ns)
         if pathway_id is None:
             pathway_id = filename.split('-')[0]
-        res = convert_pathway(tree, chem_data, genes_data, pathway_id, pathway_name, ns)
+        res = convert_pathway(tree, chem_data, genes_data, 
+                              pharma2uniprot, pathway_id, pathway_name, ns,
+                              pharma2chebi)
         output.write(res)
         output.write('\n' * 3)
     output.close()

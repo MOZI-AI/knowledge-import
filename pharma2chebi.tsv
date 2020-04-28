@@ -1,0 +1,256 @@
+pharma_id	Name	PubChem	DrugBank	ChEBI
+PA166152901	serotonin	5202		28790
+PA161925594	tropisetron		11699	32269
+PA450267	lorazepam	46508468	186	6539
+PA451608	temazepam	46506604	231	9435
+PA164781320	flunitrazepam	46504553	1544	31622
+PA450496	midazolam	46507611	683	6931
+PA449681	flurazepam	7847395	690	5128
+PA10035	bromazepam	46505694	1558	31302
+PA166131305	nordazepam	2997		111762
+PA166178653	angiotensin 1-7	123805		55438
+PA166109554	angiotensin ii	65143		58506
+PA166109574	bradykinin	439201		3165
+PA165111696	artemisinin	68827		223316
+PA165111697	artesunate	5464098		63918
+PA450163	lamivudine	46507855	709	63577
+PA451735	tramadol	46506256	193	75725
+PA450616	nevirapine	46506789	238	63613
+	leukotriene c4			16978
+	leukotriene b4			15647
+PA134698661	pranlukast	692058	1411	94810
+	leukotriene d4			28666
+PA166114483	lumacaftor	16678941		90951
+PA165950341	ivacaftor	16220172	8820	66901
+PA165946873	vemurafenib	42611257		63637
+PA166178276	6-phosphogluconate	91493		48928
+PA166178280	dihydronicotinamide adenine dinucleotide phosphate	5884	2338	16474
+PA166160613	phosphoribosyl pyrophosphate	7339		17111
+PA166178277	ribulose-5-phosphate	439184		16332
+PA166178279	nicotinamide adenine dinucleotide phosphate	5886		44409
+PA166178274	glucose-6-phosphate	5958		17733
+PA166178278	fructose-6-phosphate	69507		15946
+PA166160614	ribose phosphate	77982		17797
+PA450457	methylene blue			6872
+PA451752	triamterene	46507623	384	9671
+	atp			15422
+PA449917	hydrogen peroxide	784		16240
+	nadh			16908
+PA450566	mycophenolate mofetil	7847817	688	8764
+PA166160619	inosine monophosphate	8582		17202
+PA166178641	androstenedione	6128	1536	16422
+PA451089	pravastatin	46504851	175	63618
+PA451258	ritodrine	9448	867	8872
+PA451616	terbutaline	9339	871	9449
+PA134687907	formoterol	46507099	983	63082
+PA450431	methoxamine	9716	723	6839
+PA451300	salmeterol	46508024	938	64064
+	tyrosine			58315
+PA450390	orciprenaline	9353	816	83329
+PA165110775	sn-38	104842		8988
+PA450085	irinotecan	46505871	762	80630
+	acetate			30089
+PA450487	metyrosine	46506079	765	6912
+PA166178639	cholesterol	5997		16113
+PA166178666	squalene	638072	11460	15440
+PA166160055	cholic acid	221493		16359
+PA164924493	axitinib			66910
+PA166118340	motesanib	11667893		51098
+PA164924492	brivanib			94562
+PA166118341	vandetanib	3081361		49960
+PA449646	flecainide	46508078	1195	75984
+PA451457	sotalol	9517	489	63622
+PA449839	halofantrine	603092	1218	94392
+PA449958	ibutilide	731244	308	5856
+PA451131	propafenone	46504529	1182	63619
+PA166131350	acrylic acid	6581		18308
+PA166160613	prpp	7339		17111
+PA451663	thioguanine	46508170	352	9555
+PA166160618	s-adenosylhomocysteine	439155		16680
+PA166178659	arachidonic acid	444899	4557	15843
+PA452620	tegafur	5386	9256	32188
+PA166131299	5'-deoxy-5-fluorouridine	18343		31521
+	histamine			18295
+PA166178990	somatostatin	16129681	9099	64628
+PA451234	repaglinide	46508150	912	8805
+	acetoacetyl-coa			15345
+PA154410481	prasugrel	99443238	6209	87723
+PA166179131	phosphatidylethanolamine	9546747		44887
+PA166179130	phosphatidylcholine	5287971	2306	73002
+PA10204	tenofovir	699321	300	63717
+PA10005	adefovir dipivoxil	7848718	718	31175
+	tryptophan			16828
+PA165291492	pazopanib	11525740		71219
+PA166163680	amitriptylinoxide	20313		135224
+PA166114906	bosutinib	160645775		39112
+PA165946122	crizotinib	11626560		64310
+PA166163464	inositol 1,4,5-trisphosphate	439456		16595
+PA165980594	ponatinib	24826799		78543
+PA131890628	tranilast			77572
+PA166178378	uric acid	1175		17775
+PA451106	probenecid	9576	1032	8426
+PA134852920	benzbromarone			3023
+PA166182234	candesartan cilexetil	2540		3348
+PA165958521	febuxostat			31596
+PA166178628	xanthine	1188		17712
+PA166178630	hypoxanthine	790		17368
+PA166131330	oxypurinol	4644		28315
+PA166178623	allantoin	204		15676
+PA450748	oxymorphone	46505296	1192	7865
+PA166163694	5-hydroxydiclofenac	3052566		59612
+PA166163693	4'-hydroxydiclofenac	116545		59613
+PA166163692	diclofenac acyl glucuronide	16084218		59609
+PA166163701	4',5-dihydroxydiclofenac	3052567		223401
+PA166163695	5-hydroxy diclofenac benzoquinone	15480180		59611
+PA166163700	3'-hydroxydiclofenac	112230		223792
+PA166163659	n-desmethylclozapine	2820		64050
+PA166165069	(s)-norverapamil	15593908		134081
+	cl-			17996
+	gaba			16865
+PA166109575	angiotensin i	3081372		2718
+	fe(ii)			29033
+PA165291922	doxorubicinol	83970		133817
+PA166131278	tetrahydrothiophene	1127		48458
+	nh4+			28938
+PA166131317	sulfolane	31347		74794
+PA165260403	arteether	72416		135335
+	m2			34827
+PA166131352	1-methyluric acid	69726		68441
+PA166131274	5-acetylamino-6-formylamino-3-methyluracil	108214		32643
+PA166131368	1-methylxanthine	80220		68443
+PA165820585	1,7-dimethylxanthine	4687		25858
+PA166131373	1,7-dimethyluric acid	91611		68449
+PA166131367	1,3,7-trimethyluric acid	79437		691622
+PA166131287	2-hydroxyiminostilbene	13103864		80599
+PA165817200	2-hydroxycarbamazepine	129274		80596
+PA165817197	3-hydroxycarbamazepine	135290		80597
+PA166131247	12-hydroxynevirapine	453338		145206
+	leukotriene a4			15651
+	leukotriene e4			15650
+PA166131575	chloride	312		17996
+	glutamate			14321
+	succinate			26806
+PA166178988	succinate semialdehyde	9543238		26805
+PA166178654	alpha-ketoglutarate	164533		16810
+PA451368	sodium	923		26708
+PA166131354	3-methylxanthine	70639		62205
+PA166131337	desmethyldoxepin	5353833		141547
+PA449773	glucose	5793		17234
+PA166178281	adenosine diphosphate	6022		22252
+	m1			34826
+	m3			51083
+	n-acetyl-p-benzoquinone imine			29132
+	h2o			15377
+	nadph			16474
+	gsh			16856
+	nadp			25523
+	gssg			17858
+	h2o2			16240
+	o2			15379
+	na+			29101
+	fad			16238
+	nad			13389
+	fmn			17621
+PA166124478	endoxifen	10090750		80555
+PA164712732	enzyme inhibitors			23924
+PA165823907	hydroxyphenytoin	17732		63804
+	nad+			15846
+	ip3			16595
+	gtp			15996
+	pip2			18348
+	dopa			49168
+	gdp			17552
+	camp			17489
+PA166131329	etoposide glucuronide	46173784		5427
+PA166131563	glutathione conjugate			24335
+PA166131331	quinone	76320713		36141
+	acth			3892
+PA452347	glucocorticoids			24261
+	sn-38g			8990
+	ldl			39026
+	idl			132933
+	vldl			39027
+	phospholipid			16247
+PA451776	triglycerides			17855
+	mevalonate			25350
+	hdl			39025
+	ca2+			29108
+PA448486	arsenic trioxide	46506448	1169	30621
+PA166131270	aldophosphamide	107744		2560
+PA166131319	chloroacetaldehyde	33		27871
+PA166131388	4-hydroxycyclophosphamide	99735		1864
+	ndps			7087
+PA166131349	gemcitabine diphosphate	6420157		42852
+PA166131301	aldoifosfamide	189733		80563
+PA166131315	4-hydroxyifosfamide	308171		80560
+PA166131366	acrolein	7847		15368
+PA166131285	carboxyifosfamide	124143		80564
+PA166131264	alcoifosfamide	10265589		80565
+PA166131387	4-ketoifosfamide	99303		80561
+PA166131371	aziridine	9033		30969
+PA166131307	chloroacetic acid	300		27869
+	1,3-oxazolidin-2-one			1237
+PA166160610	6-methylmercaptopurine riboside	237358		44081
+PA166163264	thioxanthine	1268107		51055
+PA166131558	npc	11756356		80552
+PA166131559	apc	10077584		80551
+PA166131242	3-hydroxycotinine glucuronide	53477725		133205
+PA166131378	cotinine n-oxide	9815514		89087
+PA166131324	norcotinine	413		89406
+PA166114414	cotinine	854019		68641
+PA166131561	cotinine glucuronide	178540		145221
+PA166131323	nornicotine	412		28313
+PA166131310	nicotine glucuronide	3035848		63860
+PA166131297	nicotine n-oxide	17785		132572
+PA166131340	morphine-3-glucuronide	5484731		80631
+PA166131341	codeine-6-glucuronide	5489029		80580
+PA166131414	normorphine	430245		7633
+PA452633	morphine-6-glucuronide	5360621		80581
+PA166131386	norcodeine	9925873		80579
+	pgh2			15554
+	txa2			15627
+	pgd2			15555
+	pge2			15551
+	pgi2			15552
+PA164713176	platinum compounds			33749
+PA166131258	5'-deoxy-5-fluorocytidine	10037499		80627
+	h+			15378
+	gastrin			75436
+	pip3			16618
+PA164713207	proton pump inhibitors			49200
+	amp			456215
+	k+			29103
+	co2			16526
+PA166182027	clopidogrel carboxylic acid	9861403		83504
+	farnesyl pyrophosphate			17407
+	hmg-coa			15467
+	geranyl pyrophosphate			17211
+	acetyl-coa			15351
+	adp			16761
+	cyclic amp			17489
+PA449483	eptifibatide	700331	63	291902
+	aa			15843
+	pgg2			27647
+	metabolite			25212
+PA166178987	diacylglycerol	6026790		18035
+	5-hydroxyindoleacetic acid			27823
+	p1			60949
+PA166131450	demethylcitalopram	162180		80603
+PA166131265	citalopram propionic acid	10403174		80605
+PA166131333	abacavir 5'-monophosphate	469588		64112
+	(-)-carbovir 5'-monophosphate			64116
+	(-)-carbovir 5'-triphosphate			64174
+	(-)-carbovir 5'-diphosphate			64172
+PA166177866	metoprolol acid	62936		83478
+PA166182233	o-desethyl candesartan	10047287		145224
+PA166182228	glycinexylidide	87833		357241
+PA166182229	monoethylglycinexylidide	24415		222828
+PA166131268	carboxyibuprofen	10444113		133199
+	glucuronide			15341
+PA166178985	anandamide	5281969		2700
+	pgf2a			15553
+	am1			140154
+	am9			140152
+PA166178656	5-hydroxyisourate	250388		18072
+PA164784024	peginterferon alfa-2b		22	63615
+PA166178629	5-hydroxyindole-3-acetic acid	1826		27823
