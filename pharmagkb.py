@@ -232,19 +232,25 @@ def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2c
     tmp = list()
     for smallmolecule in pathway.findall('./bp:SmallMolecule', ns):
         molecule_drug, name = parse_molecule(smallmolecule, ns, chem_data, pharma2chebi)
-        molecule = CMoleculeNode(name)
-        member = CMemberLink(molecule,
-                    CConceptNode(pathway_id))
+        molecule = None
         for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
             if db_name in molecule_drug:
-                name_node = CConceptNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
+                name_node = CMoleculeNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
                 ctx = CContextLink(
                         CConceptNode(pathway_id),
                         CEvaluationLink(
                             CPredicateNode("has_{0}_id".format(db_name.lower())),
-                            CListLink(molecule,
+                            CListLink(CConceptNode(name),
                                     name_node)))
+                if molecule is None:
+                    molecule = name_node
                 tmp.append(ctx)
+
+        if molecule is None:
+            molecule = CConceptNode(name)
+        member = CMemberLink(molecule,
+                    CConceptNode(pathway_id))
+
         tmp.append(member)
         id_map[about(smallmolecule, ns)] = [molecule]
         tmp += generate_locations(smallmolecule, ns, [molecule], pathway_id)
@@ -428,14 +434,18 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
             control_type = control_type_elem.text
         else:
             print("no control type in {0}".format(about(control, ns)))
+    tmp = []
     if controlled and controller and control_type:
-        res = CEvaluationLink(
+        ev = CEvaluationLink(
                     CPredicateNode(control_name_map[control_type]),
                     CListLink(
                         wrap_list(controller),
                         wrap_list(controlled)))
-        result.append(res)
-    id_map[about(control, ns)] = result
+        tmp.append(ev)
+        ctx = CContextLink(CConceptNode(pathway_id),
+                   ev)
+        result.append(ctx)
+    id_map[about(control, ns)] = tmp
     return result
     
 
