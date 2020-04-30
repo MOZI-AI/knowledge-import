@@ -1,4 +1,7 @@
-import pandas
+"""
+Import CAUSAL ACTIVITY MODELS (CAMS) from https://geneontology.cloud/home
+"""
+
 import os
 import re
 import urllib.request
@@ -33,10 +36,10 @@ def main():
     tmp = []
     for fpath in archive.filelist:
         filename = fpath.orig_filename.split('/')[1]
-        pathway_name = filename.split('.')[0]
+        model_name = filename.split('.')[0]
         tmp.append(CInheritanceLink(
-                        CConceptNode(pathway_name),
-                        CConceptNode('pathway')))
+                        CConceptNode(model_name),
+                        CConceptNode('gocam_model')))
         sif_file = SIF(archive.open(fpath))
         for line in sif_file.lines:
             
@@ -47,8 +50,8 @@ def main():
                         relation,
                         CListLink(node_a,
                                   CConceptNode(node_b)))
-                ctx = CContextLink(CConceptNode(pathway_name),
-                                   ev)
+                ctx = CMemberLink(ev,
+                                  CConceptNode(model_name))
                 tmp.append(ctx)
 
     with open(args.output, 'wt') as f:
