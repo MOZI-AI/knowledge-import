@@ -588,6 +588,9 @@ def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, 
                  CListLink(CConceptNode(pathway_id),
                            CConceptNode(pathway_name)))
     tmp = [ev_name]
+    tmp.append(CInheritanceLink(
+                  CConceptNode(pathway_id),
+                  CConceptNode('pathway')))
     id_map = dict()
     tmp += process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, id_map)
     tmp += process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2chebi)
