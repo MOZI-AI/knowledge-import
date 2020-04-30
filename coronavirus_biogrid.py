@@ -85,17 +85,20 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
         pairs = []
         entrez = []
         genes = []
+        covid_genes = []
         proteins = []
         for i in range(len(data)):
             if not (pd.isnull(data.iloc[i]['Official Symbol Interactor A']) or pd.isnull(data.iloc[i]['Official Symbol Interactor B'])):
                 gene1 = str(data.iloc[i]['Official Symbol Interactor A']).upper().strip()
                 gene2 = str(data.iloc[i]['Official Symbol Interactor B']).upper().strip()
-                prot1 = data.iloc[i]['SWISS-PROT Accessions Interactor A'].strip()
-                prot2 = data.iloc[i]['SWISS-PROT Accessions Interactor B'].strip()
-                score = round(data.iloc[i]['Score'], 3)
+                prot1 = str(data.iloc[i]['SWISS-PROT Accessions Interactor A']).strip()
+                prot2 = str(data.iloc[i]['SWISS-PROT Accessions Interactor B']).strip()
+                score = data.iloc[i]['Score']
                 entrez1 = str(data.iloc[i]['Entrez Gene Interactor A']).strip()
                 entrez2 = str(data.iloc[i]['Entrez Gene Interactor B']).strip()
-                stv = '(stv 1.0 {})'.format(score)
+                stv = ""
+                if not str(score) in ["-", "nan"]:
+                    stv = '(stv 1.0 {})'.format(round(float(score),3))
                 taxonomy_id_1 = int(data.iloc[i]['Organism Interactor A'])
                 taxonomy_id_2 = int(data.iloc[i]['Organism Interactor B'])
 
@@ -124,13 +127,15 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                         f.write(evaLink(gene2, "GeneNode", bio,"ConceptNode", "has_biogridID", prefix2="Bio:"))
                         f.write(evaLink(prot2, "MoleculeNode", bio,"ConceptNode", "has_biogridID", prefix1="Uniprot:",prefix2="Bio:"))
 
-                    if gene1 not in genes and taxonomy_id_1 == 2697049: 
+                    if taxonomy_id_1 == 2697049: 
+                        covid_genes.append(gene1)
                         f.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism", prefix2="TaxonomyID:"))
                         f.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="TaxonomyID:"))
                         if gene_level:
                             g.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism",prefix2="TaxonomyID:"))
                             g.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:", prefix2="TaxonomyID:"))
-                    if gene2 not in genes and taxonomy_id_2 == 2697049:
+                    if taxonomy_id_2 == 2697049:
+                        covid_genes.append(gene2)
                         f.write(evaLink(gene2, "GeneNode", taxonomy_id_2 , "ConceptNode","from_organism",prefix2="TaxonomyID:"))
                         f.write(evaLink(prot2, "MoleculeNode", taxonomy_id_2, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="TaxonomyID:"))
                         if gene_level:
@@ -149,6 +154,8 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
     script = "https://github.com/MOZI-AI/knowledge-import/coronavirus_biogrid.py"
     metadata.update_meta("Coronavirus Biogrid:"+version, source,script,genes=str(len(set(genes))),prot=len(set(proteins)), interactions=str(number_of_interactions))
     print("Done, check "+'dataset/COVID-19-biogrid'+version+"_"+str(date.today())+'.scm')
+    with open("Covid19-genes","w") as co:
+        co.write("\n".join(list(set(covid_genes))))
 
 
 def parse_args():
