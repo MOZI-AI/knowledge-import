@@ -64,6 +64,8 @@ class CGeneNode(CNode):
 class CContextLink(CLink):
     atom_type = 'ContextLink'
 
+class CInheritanceLink(CLink):
+    atom_type = 'InheritanceLink'
 
 class CSetLink(CLink):
     atom_type = 'SetLink'
