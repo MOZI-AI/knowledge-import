@@ -9,9 +9,11 @@ xml_file = "raw_data/drugbank/full database.xml"
 tag_prefix = "{http://www.drugbank.ca}"
 output_file = "dataset/drugbank_{}.scm".format(str(date.today()))
 
+xml_root = ET.parse(xml_file).getroot()
+
 if os.path.exists(os.path.join(os.getcwd(), output_file)):
   os.remove(output_file)
-out_fp = open(output_file, "a", encoding='utf8')
+out_fp = open(output_file, "a", encoding = "utf8")
 
 def find_tag(obj, tag):
   return obj.find(tag_prefix + tag)
@@ -46,30 +48,35 @@ def inhlink(node_type1, node_type2, node1, node2):
   out_fp.write("\t(" + node_type2 + " \"" + node2 + "\")\n")
   out_fp.write(")\n")
 
-for drug in ET.parse(xml_file).getroot():
+# Go through the whole file once, to get the external IDs
+id_dict = {}
+for drug in xml_root:
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
-  standard_id = drugbank_id
+  chebi = None
+  pubchem_cid = None
+  for external_id in findall_tag(find_tag(drug, "external-identifiers"), "external-identifier"):
+    resource = get_child_tag_text(external_id, "resource")
+    identifier = get_child_tag_text(external_id, "identifier")
+    if resource == "ChEBI":
+      chebi = "ChEBI:" + identifier
+    elif resource == "PubChem Compound":
+      pubchem_cid = "PubChem:" + identifier
+    elif resource == "PubChem Substance":
+      # TODO: Map SID to CID
+      pubchem_cid = "PubChem:" + identifier
+  if chebi != None:
+    id_dict[drugbank_id] = chebi
+  elif pubchem_cid != None:
+    id_dict[drugbank_id] = pubchem_cid
+
+for drug in xml_root:
+  drugbank_id = get_child_tag_text(drug, "drugbank-id")
+  standard_id = id_dict.get(drugbank_id)
   name = get_child_tag_text(drug, "name").lower()
   description = get_child_tag_text(drug, "description")
 
   evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
   evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
-
-  id_dict = {}
-  for external_id in findall_tag(find_tag(drug, "external-identifiers"), "external-identifier"):
-    resource = get_child_tag_text(external_id, "resource")
-    identifier = get_child_tag_text(external_id, "identifier")
-    if resource == "PubChem Substance" or \
-       resource == "PubChem Compound" or \
-       resource == "ChEBI":
-      id_dict[resource] = identifier
-  if id_dict.get("ChEBI") != None:
-    standard_id = "ChEBI:" + id_dict.get("ChEBI")
-  elif id_dict.get("PubChem Compound") != None:
-    standard_id = "PubChem:" + id_dict.get("PubChem Compound")
-  elif id_dict.get("PubChem Substance") != None:
-    # TODO: Map SID to CID
-    standard_id = "PubChem:" + id_dict.get("PubChem Substance")
 
   for group in findall_tag(find_tag(drug, "groups"), "group"):
     drug_group = group.text
@@ -80,15 +87,15 @@ for drug in ET.parse(xml_file).getroot():
     evalink("has_pubmedID", "MoleculeNode", "ConceptNode", standard_id, "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id)
 
   for other_drug in findall_tag(find_tag(drug, "drug-interactions"), "drug-interaction"):
-    # TODO: Need to get ChEBI ID for other_drug_standard_id
-    other_drug_standard_id = get_child_tag_text(other_drug, "drugbank-id")
+    other_drug_drugbank_id = get_child_tag_text(other_drug, "drugbank-id")
+    other_drug_standard_id = id_dict.get(other_drug_drugbank_id)
     evalink("interacts_with", "MoleculeNode", "MoleculeNode", standard_id, other_drug_standard_id)
 
   for pathway in findall_tag(find_tag(drug, "pathways"), "pathway"):
     smpdb_id = get_child_tag_text(pathway, "smpdb-id")
     for involved_drug in findall_tag(find_tag(pathway, "drugs"), "drug"):
-      # TODO: Need to get ChEBI ID for involved_drug_standard_id
-      involved_drug_standard_id = get_child_tag_text(involved_drug, "drugbank-id")
+      involved_drug_drugbank_id = get_child_tag_text(involved_drug, "drugbank-id")
+      involved_drug_standard_id = id_dict.get(involved_drug_drugbank_id)
       memblink("MoleculeNode", "ConceptNode", involved_drug_standard_id, smpdb_id)
     for uniprot_id in findall_tag(find_tag(pathway, "enzymes"), "uniprot-id"):
       uniprot_id = uniprot_id.text
