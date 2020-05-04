@@ -5,7 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import date
 
-xml_file = "raw_data/drugbank/full_database.xml"
+xml_file = "raw_data/drugbank/full database.xml"
 tag_prefix = "{http://www.drugbank.ca}"
 output_file = "dataset/drugbank_{}.scm".format(str(date.today()))
 
@@ -48,13 +48,28 @@ def inhlink(node_type1, node_type2, node1, node2):
 
 for drug in ET.parse(xml_file).getroot():
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
-  # TODO: Need to get ChEBI ID for drugbank_id
   standard_id = drugbank_id
   name = get_child_tag_text(drug, "name").lower()
   description = get_child_tag_text(drug, "description")
 
   evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
   evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
+
+  id_dict = {}
+  for external_id in findall_tag(find_tag(drug, "external-identifiers"), "external-identifier"):
+    resource = get_child_tag_text(external_id, "resource")
+    identifier = get_child_tag_text(external_id, "identifier")
+    if resource == "PubChem Substance" or \
+       resource == "PubChem Compound" or \
+       resource == "ChEBI":
+      id_dict[resource] = identifier
+  if id_dict.get("ChEBI") != None:
+    standard_id = "ChEBI:" + id_dict.get("ChEBI")
+  elif id_dict.get("PubChem Compound") != None:
+    standard_id = "PubChem:" + id_dict.get("PubChem Compound")
+  elif id_dict.get("PubChem Substance") != None:
+    # TODO: Map SID to CID
+    standard_id = "PubChem:" + id_dict.get("PubChem Substance")
 
   for group in findall_tag(find_tag(drug, "groups"), "group"):
     drug_group = group.text
