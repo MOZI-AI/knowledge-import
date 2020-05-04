@@ -54,9 +54,10 @@ def inheritLink(term1 , term2, parent_chebis=[]):
 
 source = "https://bioportal.bioontology.org/ontologies/GO-PLUS"
 source_csv = "https://gitlab.com/opencog-bio/pln_mozi/blob/master/raw_data/GO-PLUS.csv.gz"
+source_csv_latest = "http://data.bioontology.org/ontologies/GO-PLUS/download?apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=csv"
 
 if not os.path.exists("raw_data/GO-PLUS.csv.gz"):
-    dataset = wget.download(source_csv, "raw_data")
+    dataset = wget.download(source_csv_latest, "raw_data")
 df = pd.read_csv("raw_data/GO-PLUS.csv.gz", dtype=str)
 # Parent CHEBI's should be a ConceptNode, not a MoleculeNode
 parents = df["Parents"]
