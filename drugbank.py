@@ -2,6 +2,7 @@
 # PYTHONIOENCODING=UTF-8 python3 drugbank.py
 
 import os
+import requests
 import xml.etree.ElementTree as ET
 from datetime import date
 
@@ -48,12 +49,22 @@ def inhlink(node_type1, node_type2, node1, node2):
   out_fp.write("\t(" + node_type2 + " \"" + node2 + "\")\n")
   out_fp.write(")\n")
 
+def get_pubchem_cid(sid):
+  print("--- Getting PubChem CID for SID:{}\n".format(sid))
+  response = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/substance/sid/" + sid + "/cids/txt")
+  if response.status_code != 200:
+    print("=== Failed to get PubChem CID for SID:{}\n".format(sid))
+    return None
+  else:
+    return response.text.strip()
+
 # Go through the whole file once, to get the external IDs
 id_dict = {}
 for drug in xml_root:
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
   chebi = None
   pubchem_cid = None
+  pubchem_sid = None
   for external_id in findall_tag(find_tag(drug, "external-identifiers"), "external-identifier"):
     resource = get_child_tag_text(external_id, "resource")
     identifier = get_child_tag_text(external_id, "identifier")
@@ -62,12 +73,19 @@ for drug in xml_root:
     elif resource == "PubChem Compound":
       pubchem_cid = "PubChem:" + identifier
     elif resource == "PubChem Substance":
-      # TODO: Map SID to CID
-      pubchem_cid = "PubChem:" + identifier
+      cid = get_pubchem_cid(identifier)
+      if cid == None:
+        pubchem_sid = "PubChemSID:" + identifier
+      else:
+        pubchem_cid = "PubChem:" + cid
   if chebi != None:
     id_dict[drugbank_id] = chebi
   elif pubchem_cid != None:
     id_dict[drugbank_id] = pubchem_cid
+  elif pubchem_sid != None:
+    id_dict[drugbank_id] = pubchem_sid
+  else:
+    id_dict[drugbank_id] = "DrugBank:" + drugbank_id
 
 for drug in xml_root:
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
