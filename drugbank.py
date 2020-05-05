@@ -2,7 +2,9 @@
 # PYTHONIOENCODING=UTF-8 python3 drugbank.py
 
 import os
+import re
 import requests
+import wget
 import xml.etree.ElementTree as ET
 from datetime import date
 
@@ -58,13 +60,52 @@ def get_pubchem_cid(sid):
   else:
     return response.text.strip()
 
-# Go through the whole file once, to get the external IDs
+# Get ChEBI IDs for reference later
+chebi_obo = "raw_data/chebi.obo"
+chebi_url = "ftp://ftp.ebi.ac.uk/pub/databases/chebi/ontology/chebi.obo"
+
+if os.path.exists(chebi_obo):
+  print("Removing file: {}".format(chebi_obo))
+  os.remove(chebi_obo)
+
+chebi_file = wget.download(chebi_url, "raw_data")
+print("\nFile downloaded: {}".format(chebi_file))
+
+chebi_fp = open(chebi_file, "r", errors="ignore")
+chebi_dict = {}
+chebi_name = []
+chebi_id = None
+
+for line in chebi_fp:
+  line = line.replace("\n", "")
+  if line == "[Term]":
+    if len(chebi_name) > 0 and chebi_id != None:
+      for name in chebi_name:
+        chebi_dict[name.lower()] = chebi_id
+      # print("ChEBI ID: {}\nName: {}\n".format(chebi_id, chebi_name))
+    chebi_name = []
+    chebi_id = None
+  elif line.startswith("id: "):
+    chebi_id = line.replace("id: CHEBI:", "")
+  elif line.startswith("name: "):
+    chebi_name.append(line.replace("name: ", ""))
+  elif line.startswith("synonym: ") and "EXACT" in line:
+    name = re.match(".+\"(.+)\".+", line).group(1)
+    if name not in chebi_name:
+      chebi_name.append(name)
+
+chebi_fp.close()
+
+# Then go through the whole file once, to get the external IDs
 id_dict = {}
 for drug in xml_root:
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
+  name = get_child_tag_text(drug, "name").lower()
+
   chebi = None
   pubchem_cid = None
   pubchem_sid = None
+
   for external_id in findall_tag(find_tag(drug, "external-identifiers"), "external-identifier"):
     resource = get_child_tag_text(external_id, "resource")
     identifier = get_child_tag_text(external_id, "identifier")
@@ -73,18 +114,21 @@ for drug in xml_root:
     elif resource == "PubChem Compound":
       pubchem_cid = "PubChem:" + identifier
     elif resource == "PubChem Substance":
-      cid = get_pubchem_cid(identifier)
-      if cid == None:
-        pubchem_sid = "PubChemSID:" + identifier
-      else:
-        pubchem_cid = "PubChem:" + cid
+      pubchem_sid = "PubChemSID:" + identifier
   if chebi != None:
     id_dict[drugbank_id] = chebi
   elif pubchem_cid != None:
-    id_dict[drugbank_id] = pubchem_cid
+    # Try to get the ChEBI ID from the official database first,
+    # only use PubChem CID if a ChEBI ID is not available
+    chebi = chebi_dict.get(name)
+    id_dict[drugbank_id] = pubchem_cid if chebi == None else "ChEBI:" + chebi
   elif pubchem_sid != None:
-    id_dict[drugbank_id] = pubchem_sid
+    # Try to get the PubChem CID from the official databse first,
+    # only use PubChem SID if a PubChem CID is not available
+    pubchem_cid = get_pubchem_cid(identifier)
+    id_dict[drugbank_id] = pubchem_sid if pubchem_cid == None else "PubChem:" + pubchem_cid
   else:
+    # If no desired external IDs is found, use the DrugBank ID
     id_dict[drugbank_id] = "DrugBank:" + drugbank_id
 
 for drug in xml_root:
