@@ -76,7 +76,9 @@ for drug in xml_root:
   description = get_child_tag_text(drug, "description")
 
   evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
-  evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
+
+  if description != None:
+    evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
 
   for group in findall_tag(find_tag(drug, "groups"), "group"):
     drug_group = group.text
@@ -84,7 +86,8 @@ for drug in xml_root:
 
   for article in findall_tag(find_tag(find_tag(drug, "general-references"), "articles"), "article"):
     pubmed_id = get_child_tag_text(article, "pubmed-id")
-    evalink("has_pubmedID", "MoleculeNode", "ConceptNode", standard_id, "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id)
+    if pubmed_id != None:
+      evalink("has_pubmedID", "MoleculeNode", "ConceptNode", standard_id, "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id)
 
   for other_drug in findall_tag(find_tag(drug, "drug-interactions"), "drug-interaction"):
     other_drug_drugbank_id = get_child_tag_text(other_drug, "drugbank-id")
