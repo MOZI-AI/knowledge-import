@@ -53,9 +53,14 @@ def inhlink(node_type1, node_type2, node1, node2):
 
 def get_pubchem_cid(sid):
   print("--- Getting PubChem CID for SID:{}\n".format(sid))
-  response = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/substance/sid/" + sid + "/cids/txt")
+  try:
+    response = requests.get("https://pubchem.ncbi.nlm.nih.gov/rest/pug/substance/sid/" + sid + "/cids/txt")
+  except:
+    print("=== Connection error")
+    return None
+
   if response.status_code != 200:
-    print("=== Failed to get PubChem CID for SID:{}\n".format(sid))
+    print("=== Failed to find a PubChem CID for SID:{}\n".format(sid))
     return None
   else:
     return response.text.strip()
