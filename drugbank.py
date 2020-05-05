@@ -114,7 +114,9 @@ for drug in xml_root:
     elif resource == "PubChem Compound":
       pubchem_cid = "PubChem:" + identifier
     elif resource == "PubChem Substance":
-      pubchem_sid = "PubChemSID:" + identifier
+      # Prefix will be added later
+      pubchem_sid = identifier
+
   if chebi != None:
     id_dict[drugbank_id] = chebi
   elif pubchem_cid != None:
@@ -125,8 +127,8 @@ for drug in xml_root:
   elif pubchem_sid != None:
     # Try to get the PubChem CID from the official databse first,
     # only use PubChem SID if a PubChem CID is not available
-    pubchem_cid = get_pubchem_cid(identifier)
-    id_dict[drugbank_id] = pubchem_sid if pubchem_cid == None else "PubChem:" + pubchem_cid
+    pubchem_cid = get_pubchem_cid(pubchem_sid)
+    id_dict[drugbank_id] = "PubChemSID:" + pubchem_sid if pubchem_cid == None else "PubChem:" + pubchem_cid
   else:
     # If no desired external IDs is found, use the DrugBank ID
     id_dict[drugbank_id] = "DrugBank:" + drugbank_id
