@@ -122,18 +122,20 @@ for drug in xml_root:
       # Prefix will be added later
       pubchem_sid = identifier
 
+  # Try to get the ChEBI ID from the official database if it's not found in DrugBank
+  if chebi == None:
+    chebi = chebi_dict.get(name)
+
+  # Try to get the PubChem CID from the official database if it's not found in DrugBank
+  if pubchem_cid == None and pubchem_sid != None:
+    pubchem_cid = get_pubchem_cid(pubchem_sid)
+
   if chebi != None:
     id_dict[drugbank_id] = chebi
   elif pubchem_cid != None:
-    # Try to get the ChEBI ID from the official database first,
-    # only use PubChem CID if a ChEBI ID is not available
-    chebi = chebi_dict.get(name)
-    id_dict[drugbank_id] = pubchem_cid if chebi == None else "ChEBI:" + chebi
+    id_dict[drugbank_id] = pubchem_cid
   elif pubchem_sid != None:
-    # Try to get the PubChem CID from the official databse first,
-    # only use PubChem SID if a PubChem CID is not available
-    pubchem_cid = get_pubchem_cid(pubchem_sid)
-    id_dict[drugbank_id] = "PubChemSID:" + pubchem_sid if pubchem_cid == None else "PubChem:" + pubchem_cid
+    id_dict[drugbank_id] = "PubChemSID:" + pubchem_sid
   else:
     # If no desired external IDs is found, use the DrugBank ID
     id_dict[drugbank_id] = "DrugBank:" + drugbank_id
@@ -161,6 +163,9 @@ for drug in xml_root:
   for other_drug in findall_tag(find_tag(drug, "drug-interactions"), "drug-interaction"):
     other_drug_drugbank_id = get_child_tag_text(other_drug, "drugbank-id")
     other_drug_standard_id = id_dict.get(other_drug_drugbank_id)
+    # For some reason a few of them are not in the 'full database' file?
+    if other_drug_standard_id == None:
+      other_drug_standard_id = other_drug_drugbank_id
     evalink("interacts_with", "MoleculeNode", "MoleculeNode", standard_id, other_drug_standard_id)
 
   for pathway in findall_tag(find_tag(drug, "pathways"), "pathway"):
@@ -168,6 +173,9 @@ for drug in xml_root:
     for involved_drug in findall_tag(find_tag(pathway, "drugs"), "drug"):
       involved_drug_drugbank_id = get_child_tag_text(involved_drug, "drugbank-id")
       involved_drug_standard_id = id_dict.get(involved_drug_drugbank_id)
+      # For some reason a few of them are not in the 'full database' file?
+      if involved_drug_standard_id == None:
+        involved_drug_standard_id = involved_drug_drugbank_id
       memblink("MoleculeNode", "ConceptNode", involved_drug_standard_id, smpdb_id)
     for uniprot_id in findall_tag(find_tag(pathway, "enzymes"), "uniprot-id"):
       uniprot_id = uniprot_id.text
