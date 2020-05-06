@@ -99,8 +99,8 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                 stv = ""
                 if not str(score) in ["-", "nan"]:
                     stv = '(stv 1.0 {})'.format(round(float(score),3))
-                taxonomy_id_1 = int(data.iloc[i]['Organism Interactor A'])
-                taxonomy_id_2 = int(data.iloc[i]['Organism Interactor B'])
+                taxonomy_id_1 = int(data.iloc[i]['Organism ID Interactor A'])
+                taxonomy_id_2 = int(data.iloc[i]['Organism ID Interactor B'])
 
                 if (gene1, gene2) not in pairs or (gene2, gene1) not in genes:
                     if not gene1 in entrez:
@@ -129,31 +129,31 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
 
                     if taxonomy_id_1 == 2697049: 
                         covid_genes.append(gene1)
-                        f.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism", prefix2="TaxonomyID:"))
-                        f.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="TaxonomyID:"))
+                        f.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism", prefix2="ncbi:"))
+                        f.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="ncbi:"))
                         if gene_level:
-                            g.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism",prefix2="TaxonomyID:"))
-                            g.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:", prefix2="TaxonomyID:"))
+                            g.write(evaLink(gene1, "GeneNode", taxonomy_id_1 , "ConceptNode","from_organism",prefix2="ncbi:"))
+                            g.write(evaLink(prot1, "MoleculeNode", taxonomy_id_1, "ConceptNode","from_organism", prefix1="Uniprot:", prefix2="ncbi:"))
                     if taxonomy_id_2 == 2697049:
                         covid_genes.append(gene2)
-                        f.write(evaLink(gene2, "GeneNode", taxonomy_id_2 , "ConceptNode","from_organism",prefix2="TaxonomyID:"))
-                        f.write(evaLink(prot2, "MoleculeNode", taxonomy_id_2, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="TaxonomyID:"))
+                        f.write(evaLink(gene2, "GeneNode", taxonomy_id_2 , "ConceptNode","from_organism",prefix2="ncbi:"))
+                        f.write(evaLink(prot2, "MoleculeNode", taxonomy_id_2, "ConceptNode","from_organism", prefix1="Uniprot:",prefix2="ncbi:"))
                         if gene_level:
-                            g.write(evaLink(gene2, "GeneNode", taxonomy_id_2 , "ConceptNode", "from_organism", prefix2="TaxonomyID:"))
-                            g.write(evaLink(prot2, "MoleculeNode", taxonomy_id_2, "ConceptNode", "from_organism", prefix1="Uniprot:", prefix2="TaxonomyID:"))                            
+                            g.write(evaLink(gene2, "GeneNode", taxonomy_id_2 , "ConceptNode", "from_organism", prefix2="ncbi:"))
+                            g.write(evaLink(prot2, "MoleculeNode", taxonomy_id_2, "ConceptNode", "from_organism", prefix1="Uniprot:", prefix2="ncbi:"))                            
                     
                     genes.append(gene1)
                     genes.append(gene2)
                     proteins.append(prot1)
                     proteins.append(prot2)
                     pairs.append((gene1,gene2))
-        f.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode","has_name",prefix1="TaxonomyID:"))
-        g.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode","has_name",prefix1="TaxonomyID:"))
+        f.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode","has_name",prefix1="ncbi:"))
+        g.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode","has_name",prefix1="ncbi:"))
     pairs = set((a,b) if a<=b else (b,a) for a,b in pairs)
     number_of_interactions = len(pairs)
     script = "https://github.com/MOZI-AI/knowledge-import/coronavirus_biogrid.py"
     metadata.update_meta("Coronavirus Biogrid:"+version, source,script,genes=str(len(set(genes))),prot=len(set(proteins)), interactions=str(number_of_interactions))
-    print("Done, check "+'dataset/COVID-19-biogrid'+version+"_"+str(date.today())+'.scm')
+    print("Done, check "+'dataset/COVID-19-biogrid_'+version+"_"+str(date.today())+'.scm')
     with open("Covid19-genes","w") as co:
         co.write("\n".join(list(set(covid_genes))))
 
