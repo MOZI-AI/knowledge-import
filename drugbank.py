@@ -140,6 +140,8 @@ for drug in xml_root:
     # If no desired external IDs is found, use the DrugBank ID
     id_dict[drugbank_id] = "DrugBank:" + drugbank_id
 
+# Finally do the conversion for each of the drugs
+drug_groups = []
 for drug in xml_root:
   drugbank_id = get_child_tag_text(drug, "drugbank-id")
   standard_id = id_dict.get(drugbank_id)
@@ -152,8 +154,11 @@ for drug in xml_root:
     evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
 
   for group in findall_tag(find_tag(drug, "groups"), "group"):
-    drug_group = group.text
-    inhlink("MoleculeNode", "ConceptNode", standard_id, drug_group + " drug")
+    drug_group = group.text + " drug"
+    inhlink("MoleculeNode", "ConceptNode", standard_id, drug_group)
+    if drug_group not in drug_groups:
+      inhlink("ConceptNode", "ConceptNode", drug_group, "drug")
+      drug_groups.append(drug_group)
 
   for article in findall_tag(find_tag(find_tag(drug, "general-references"), "articles"), "article"):
     pubmed_id = get_child_tag_text(article, "pubmed-id")
