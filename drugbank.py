@@ -151,7 +151,7 @@ for drug in xml_root:
   evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
 
   if description != None:
-    evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description)
+    evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description.replace("\"", "\\\"").strip())
 
   for group in findall_tag(find_tag(drug, "groups"), "group"):
     drug_group = group.text + " drug"
