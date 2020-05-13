@@ -86,7 +86,7 @@ for line in chebi_fp:
   if line == "[Term]":
     if len(chebi_name) > 0 and chebi_id != None:
       for name in chebi_name:
-        chebi_dict[name.lower()] = chebi_id
+        chebi_dict[name.lower()] = "ChEBI:" + chebi_id
       # print("ChEBI ID: {}\nName: {}\n".format(chebi_id, chebi_name))
     chebi_name = []
     chebi_id = None
