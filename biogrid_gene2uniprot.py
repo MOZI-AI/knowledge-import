@@ -7,13 +7,12 @@ __email__ = "hedra@singularitynet.io"
 # Requires: uniprot to biogrid_id mapping file uniprot2biogrid.csv and
 # Biogrid gene to biogrid_id mapping file gene2biogrid.csv (run biogrid_genes.py to get this file)
 
-import pandas as pd
-import sys
-import math
-from collections import defaultdict
-import metadata
 import os
 from datetime import date
+
+import pandas as pd
+
+import metadata
 
 script = "https://github.com/MOZI-AI/knowledge-import/biogrid_gene2uniprot.py"
 
