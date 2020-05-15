@@ -18,13 +18,7 @@ import metadata
 from datetime import date
 import zipfile
 from atomwrappers import *
-
-
-def checkdisc(diction, key, value):
-    try:
-        diction.setdefault(key, []).append(value)
-    except KeyError:
-        return "key error"
+from biogrid import checkdisc
 
 
 def evaLink(node1, node1_type, node2, node2_type, predicate, prefix1="", prefix2="", symmetric=False, stv=""):
