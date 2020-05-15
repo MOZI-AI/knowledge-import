@@ -24,11 +24,16 @@ class CNode(CAtom):
 
 
 class CLink(CAtom):
-    def __init__(self, *atoms):
+    def __init__(self, *atoms, stv=None):
         self.outgoing = atoms
+        self.stv = stv
+
 
     def __str__(self):
         outgoing = '\n'.join([str(x) for x in self.outgoing])
+        if self.stv is not None:
+            return '({0} {1} {2})'.format(self.atom_type, self.stv , outgoing)
+
         return '({0} {1})'.format(self.atom_type, outgoing)
 
     def recursive_print(self, result='', indent=''):
@@ -74,3 +79,11 @@ class CSetLink(CLink):
         # str is used for hash computation, so need to sort outgoing set for all unordered links
         outgoing = '\n'.join(sorted([str(x) for x in self.outgoing]))
         return '({0} {1})'.format(self.atom_type, outgoing)
+
+class CStv:
+    def __init__(self, tv, confidence):
+        self.tv = tv
+        self.confidence = confidence
+
+    def __str__(self):
+        return '(stv {0} {1})'.format(self.tv, self.confidence)
