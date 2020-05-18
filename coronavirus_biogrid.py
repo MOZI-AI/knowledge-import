@@ -1,5 +1,5 @@
-__author__ = "Hedra"
-__email__ = "hedra@singularitynet.io"
+__author__ = "Hedra & Abdulrahman"
+__email__ = "hedra@singularitynet.io & xabush@singularitynet.io"
 
 # The following script imports SARS-CoV-2 (COVID-19) and Coronavirus-Related Interactions from thebiogrid.com
 
@@ -10,15 +10,15 @@ __email__ = "hedra@singularitynet.io"
 # The version 183 is first release (March 25 2020), It can also be any of the latest versions with the same format
 
 import argparse
+import os
+import zipfile
+from datetime import date
+
 import pandas as pd
 import wget
-import os
-import sys
+
 import metadata
-from datetime import date
-import zipfile
 from atomwrappers import *
-from biogrid import checkdisc
 
 
 def evaLink(node1, node1_type, node2, node2_type, predicate, prefix1="", prefix2="", symmetric=False, stv=""):
@@ -50,31 +50,25 @@ def add_taxonomy(taxonomy_id, node, fp):
     fp.write(member_ln.recursive_print() + "\n")
 
 
+def define_protein_lns(gene_node, prot_node, bio_id, fp):
+    express_ln = CEvaluationLink(CPredicateNode("expresses"), CListLink(gene_node, prot_node))
+    gene_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
+                               CListLink(gene_node, CConceptNode("Bio:" + bio_id)))
+    prot_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
+                               CListLink(prot_node, CConceptNode("Bio:" + bio_id)))
+
+    fp.write(express_ln.recursive_print() + "\n")
+    fp.write(gene_bio.recursive_print() + "\n")
+    fp.write(prot_bio.recursive_print() + "\n")
+
+
 def add_protein_interaction(proteins_lst, prot_node_1, gene_node_1, prot_node_2, gene_node_2, bio_id_1, bio_id_2, fp):
     if not prot_node_1.name in proteins_lst:
-        express_ln = CEvaluationLink(CPredicateNode("expresses"), CListLink(gene_node_1, prot_node_1))
-        gene_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
-                                   CListLink(gene_node_1, CConceptNode("Bio:" + bio_id_1)))
-        prot_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
-                                   CListLink(prot_node_1, CConceptNode("Bio:" + bio_id_1)))
-
-        fp.write(express_ln.recursive_print() + "\n")
-        fp.write(gene_bio.recursive_print() + "\n")
-        fp.write(prot_bio.recursive_print() + "\n")
-
+        define_protein_lns(gene_node_1, prot_node_1, bio_id_1, fp)
         proteins_lst.append(prot_node_1.name)
 
     if not prot_node_2.name in proteins_lst:
-        express_ln = CEvaluationLink(CPredicateNode("expresses"), CListLink(gene_node_2, prot_node_2))
-        gene_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
-                                   CListLink(gene_node_2, CConceptNode("Bio:" + bio_id_2)))
-        prot_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
-                                   CListLink(prot_node_2, CConceptNode("Bio:" + bio_id_2)))
-
-        fp.write(express_ln.recursive_print() + "\n")
-        fp.write(gene_bio.recursive_print() + "\n")
-        fp.write(prot_bio.recursive_print() + "\n")
-
+        define_protein_lns(gene_node_2, prot_node_2, bio_id_2, fp)
         proteins_lst.append(prot_node_2.name)
 
 

@@ -15,17 +15,11 @@ from urllib.request import urlopen
 from zipfile import ZipFile
 from io import BytesIO
 import os
-import sys
+import collections
 import metadata
 from datetime import date
 from atomwrappers import *
 
-
-def checkdisc(diction, key, value):
-    try:
-        diction.setdefault(key, []).append(value)
-    except KeyError:
-        return "key error"
 
 
 def import_data_from_web(version, form='tab2'):
@@ -87,7 +81,7 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
 
     biogrid_path = os.path.join(dataset_path, 'biogrid_gene_gene_' + version + '_' + str(date.today()) + '.scm')
     with open(biogrid_path, 'w') as f:
-        pairs = {}
+        pairs = collections.defaultdict(list)
         entrez = []
         for i in range(len(data)):
             if not (pd.isnull(data.iloc[i]['Official Symbol Interactor A']) or pd.isnull(
@@ -103,7 +97,7 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                     interactors = node2 + ':' + node1
 
                 pubmed_link = 'https://www.ncbi.nlm.nih.gov/pubmed/?term=' + str(pubmed)
-                checkdisc(pairs, interactors, CConceptNode(pubmed_link))
+                pairs[interactors].append(CConceptNode(pubmed_link))
 
                 if not node1 in entrez:
                     entrez_1 = CConceptNode("entrez:" + str(data.iloc[i]['Entrez Gene Interactor A']))
