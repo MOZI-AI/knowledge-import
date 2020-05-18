@@ -134,11 +134,12 @@ def gen_proteins(pharma_id, name, pathway_id, pharma2uniprot):
 
 
 def gen_location(protein_node, location_node, pathway_id):
-    return CContextLink(CConceptNode(pathway_id),
+    return CContextLink(CMemberLink(protein_node,
+                                    CConceptNode(pathway_id)),
                CEvaluationLink(CPredicateNode("has_location"),
                                CListLink(protein_node,
                                          location_node)))
-                               
+
 
 def generate_locations(elem, ns, chemical_nodes, pathway_id):
     result = []
@@ -236,18 +237,18 @@ def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2c
         for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
             if db_name in molecule_drug:
                 name_node = CMoleculeNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
-                ctx = CContextLink(
-                        CConceptNode(pathway_id),
-                        CEvaluationLink(
+                ctx = CMemberLink(
+                    CEvaluationLink(
                             CPredicateNode("has_{0}_id".format(db_name.lower())),
                             CListLink(CConceptNode(name),
-                                    name_node)))
+                                    name_node))
+                        ,CConceptNode(pathway_id))
                 if molecule is None:
                     molecule = name_node
                 tmp.append(ctx)
 
         if molecule is None:
-            molecule = CConceptNode(name)
+            molecule = CMoleculeNode(name)
         member = CMemberLink(molecule,
                     CConceptNode(pathway_id))
 
@@ -301,17 +302,25 @@ def parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemica
                     protein_ref_id.append(prot_id)
     else:
         import pdb;pdb.set_trace()
-    if protein_ref_id is not None:
+    if protein_ref_id:
         members, protein_nodes = gen_proteins(protein_ref_id, name, pathway_id, pharma2uniprot)
         elem_chemical_map[protein_elem_id] = protein_nodes
         if tmp is not None:
             tmp += generate_locations(protein, ns, protein_nodes, pathway_id)
             tmp += members
     else:
-        # give up
+        # use the name
         name = protein.find('./bp:standardName', ns).text
         print("can't map protein to uniprot for {0}".format(name))
-        return None
+        elem_chemical_map[protein_elem_id] = [CConceptNode(name)]
+        if organism is not None:
+            ev = CEvaluationLink(
+                    CPredicateNode("from_organism"),
+                    CListLink (
+                      CConceptNode(name),
+                      CConceptNode("ncbi:{0}".format(organism))))
+            if tmp is not None:
+                tmp.append(ev)
     return elem_chemical_map.get(protein_elem_id, None)
 
 
@@ -320,8 +329,10 @@ def process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, elem_c
     # properties often don't have valid attributes 
     for protein in pathway.findall('./bp:Protein', ns):
         parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemical_map, tmp=tmp)
+    # Complex is expected to be made of proteins
+    for comp in pathway.findall('./bp:Complex', ns):
+        tmp += parse_elem(comp, pathway, ns, pathway_id, elem_chemical_map)
     return tmp
-
 
 
 protein_ref_re = re.compile('.*(\.|/)(PA\d+)')
@@ -366,9 +377,9 @@ def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_na
             CPredicateNode(interaction_name),
             CListLink(wrap_list(left_mol),
                         wrap_list(right_mol)))
-        result.append(CContextLink(
-                        CConceptNode(pathway_id),
-                        ev))
+        result.append(CMemberLink(
+                        ev,
+                        CConceptNode(pathway_id)))
     if not result:
         print("failed to parse {0}".format(about(interaction, ns)))
     id_map[about(interaction, ns)] = [] if ev is None else [ev]
@@ -442,8 +453,8 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
                         wrap_list(controller),
                         wrap_list(controlled)))
         tmp.append(ev)
-        ctx = CContextLink(CConceptNode(pathway_id),
-                   ev)
+        ctx = CMemberLink(ev,
+                   CConceptNode(pathway_id))
         result.append(ctx)
     id_map[about(control, ns)] = tmp
     return result
@@ -470,8 +481,7 @@ def parse_catalysis(element, pathway, ns, pathway_id, id_map):
                     CListLink(cont,
                         wrap_list(controlled)))
         result.append(
-            CContextLink(CConceptNode(pathway_id),
-                         res))
+            CMemberLink(res,CConceptNode(pathway_id)))
         id_map[about(element, ns)] = [res]
     else:
         id_map[about(element, ns)] = []
@@ -488,9 +498,13 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
         return id_map[about(elem, ns)]
     if elem.tag.endswith('Complex'):
         name = elem.find('./bp:standardName', ns).text
-        node = CConceptNode(name)
+        node = CMoleculeNode(name)
         member = CMemberLink(node,
                         CConceptNode(pathway_id))
+        for comp in elem.findall('./bp:component', ns):
+            elem_comp = find_about_element(pathway, ns, resource(comp, ns))
+            for ref in id_map[about(elem_comp, ns)]:
+                result.append(CMemberLink(ref, node))
         id_map[about(elem, ns)] = [node]
         result.append(member)
     elif elem.tag.endswith('PhysicalEntity'):
@@ -559,8 +573,7 @@ def process_component(interaction, pathway, ns, pathway_id, id_map, result):
         print("ComplexAssembly parsing is not yet implemented")
         id_map[about(interaction, ns)] = []
     elif interaction_name == 'Complex':
-        print("Complex parsing is not yet implemented")
-        id_map[about(interaction, ns)] = []
+        result += parse_elem(interaction, pathway, ns, pathway_id, id_map)
     elif interaction_name == 'Degradation':
         print("Degradation parsing is not yet implemented")
         id_map[about(interaction, ns)] = []
