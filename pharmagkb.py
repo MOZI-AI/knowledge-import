@@ -120,6 +120,9 @@ def gen_proteins(pharma_id, name, pathway_id, pharma2uniprot):
     proteins = []
     for prot in pharma_id:
         entry = pharma2uniprot[pharma2uniprot.pharma_id == prot + ';']
+        # drop unreviewed if possible
+        if 'reviewed' in entry.Status.tolist():
+            entry = entry[entry.Status == 'reviewed']
         if not len(entry):
             print("not found uniprot id for {0}".format(name))
             continue
@@ -240,8 +243,8 @@ def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2c
                 ctx = CMemberLink(
                     CEvaluationLink(
                             CPredicateNode("has_{0}_id".format(db_name.lower())),
-                            CListLink(CConceptNode(name),
-                                    name_node))
+                            CListLink(CMoleculeNode(name),
+                                      name_node))
                         ,CConceptNode(pathway_id))
                 if molecule is None:
                     molecule = name_node
@@ -512,8 +515,8 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
         id_map[about(elem, ns)] = []
     elif elem.tag.endswith('Pathway'):
         name = elem.find('./bp:standardName', ns).text
-        print("Pathway as component of interaction is not supported: {0}".format(name))
-        id_map[about(elem, ns)] = []
+        result.append(CInheritanceLink(CConceptNode(name), CConceptNode('pathway')))
+        id_map[about(elem, ns)] = [CConceptNode(name)]
         return result
     elif elem.tag.endswith('Dna') or elem.tag.endswith('Rna'):
         print("Dna and Rna as component of interaction is not supported: {0}".format(about(elem, ns)))
@@ -551,6 +554,146 @@ def parse_interaction(interaction, pathway, ns, pathway_id, id_map):
     return result
 
 
+class ParseError(RuntimeError):
+    pass
+
+
+def parse_location(element, pathway, ns):
+    result = []
+    loc = element.find('bp:cellularLocation', ns)
+    if loc is None:
+        raise ParseError("no cellularLocation in elem {0}".format(about(element, ns)))
+    loc_id = resource(loc, ns)
+    # may fail
+    loc_reference = find_about_element(pathway, ns, loc_id)
+    if loc_reference is None:
+        return result, CConceptNode(loc_id)
+    # there is term - human readable and reference
+    term = loc_reference.find('bp:term', ns).text
+    xref = resource(loc_reference.find('bp:xref', ns), ns)
+    match = go_location_re.match(xref)
+    if match is not None:
+        xref = go_location_re.match(xref).group(1)
+    ev = CEvaluationLink(
+            CPredicateNode('has_name'),
+            CListLink(
+                CConceptNode(xref),
+                CConceptNode(term)))
+    result.append(ev)
+    return result, CConceptNode(term)
+
+
+def tag(elem):
+    return elem.tag.split('#}')[1]
+
+
+def molecule_transport(transport_protein, 
+                    molecule, 
+                    source_location,
+                    target_location):
+        ev = CEvaluationLink(
+                CPredicateNode('transport_of'),
+                    CListLink(
+                        transport_protein,
+                        molecule,
+                        source_location,
+                        target_location))
+        return ev
+
+
+def transport_with_transport_protein(pathway_id, pathway, interaction, left_elem, right_elem, id_map, ns):
+    tmp = []
+    result = []
+    # There exist many variants here
+    # most common is when a small molecule attached or detached from some protein
+    # when left is a small molecule then it is attachment, otherwise it is detachment
+    if tag(left_elem) == 'SmallMolecule' and tag(right_elem) == 'Protein':
+        transport_protein = right_elem
+        molecule = left_elem
+    elif tag(left_elem) == 'Protein' and tag(right_elem) == 'SmallMolecule':
+        transport_protein = left_elem
+        molecule = right_elem
+    else:
+        # can't handle such cases yet
+        print('failed to parse transport {0}'.format(interaction)) 
+        id_map[about(interaction, ns)] = tmp
+        return result
+    loc, source_location = parse_location(left_elem, pathway, ns)
+    result += loc
+    loc, target_location = parse_location(right_elem, pathway, ns)
+    result += loc
+    if not (len(id_map[about(transport_protein, ns)]) == 1 and len(id_map[about(molecule, ns)]) == 1):
+        # todo
+        print("multiple elements for one transport molecule")
+    ev = molecule_transport(id_map[about(transport_protein, ns)][0],
+                            id_map[about(molecule, ns)][0],
+                            source_location,
+                            target_location)
+    tmp.append(ev)
+    id_map[about(interaction, ns)] = tmp
+    member = CMemberLink(ev,
+                         CConceptNode(pathway_id))
+    result += [member]
+    return result
+
+
+def parse_transport(interaction, pathway, ns, pathway_id, id_map):
+    result = []
+    # left = from
+    # right = to
+    # todo: handle cases when there are many left or right elements
+    left = interaction.find('./bp:left', ns)
+    right = interaction.find('./bp:right', ns)
+    error = None
+    if right is None:
+        error = 'no destination for transport in {0}'.format(about(interaction, ns))
+    if left is None:
+        error = 'no source for transport in {0}'.format(about(interaction, ns))
+    if error is not None:
+        print(error)
+        id_map[about(interaction, ns)] = []
+        return result
+    try:
+        left_id = resource(left, ns)
+        right_id = resource(right, ns)
+        left_elem = find_about_element(pathway, ns, left_id)
+        right_elem = find_about_element(pathway, ns, right_id)
+        # check that it is the same chemical
+        left_ref = left_elem.find('bp:entityReference', ns)
+        right_ref = right_elem.find('bp:entityReference', ns)
+        tmp = []
+        if None not in (left_ref, right_ref):
+            left_ref = resource(left_ref, ns)
+            right_ref = resource(right_ref, ns)
+        else:
+            # failed to check with reference, use standardName
+            left_ref = left_elem.find('bp:standardName', ns).text
+            right_ref = right_elem.find('bp:standardName', ns).text
+        if left_ref != right_ref:
+            return transport_with_transport_protein(pathway_id, pathway, interaction, left_elem, right_elem, id_map, ns)
+        parse_elem(left_elem, pathway, ns, pathway_id, id_map)
+        left_r, left_xref = parse_location(left_elem, pathway, ns)
+        result += left_r
+        right_r, right_xref = parse_location(right_elem, pathway, ns)
+        result += right_r
+
+        for mol in id_map.get(left_id, ()):
+            ev = CEvaluationLink(
+                CPredicateNode('transport_of'),
+                CListLink(mol,
+                    left_xref,
+                    right_xref))
+            member = CMemberLink(ev,
+                                 CConceptNode(pathway_id))
+            result += [member]
+            tmp.append(ev)
+    except ParseError as e:
+        print("Error parsing transport {0}".format(e))
+    # need to extract locations
+    id_map[about(interaction, ns)] = tmp
+    return result
+
+
 def process_component(interaction, pathway, ns, pathway_id, id_map, result):
     interaction_name = interaction.tag.split('}')[-1]
     if about(interaction, ns) in id_map:
@@ -558,7 +701,7 @@ def process_component(interaction, pathway, ns, pathway_id, id_map, result):
     if interaction_name == 'BiochemicalReaction':
         result += gen_interaction(interaction, pathway, pathway_id, ns, id_map, 'reaction')
     elif interaction_name == 'Transport':
-        result += gen_interaction(interaction, pathway, pathway_id, ns, id_map, 'transport_of')
+        result += parse_transport(interaction, pathway, ns, pathway_id, id_map)
     elif interaction_name == 'Catalysis':
         result += parse_catalysis(interaction, pathway, ns, pathway_id, id_map)
     elif interaction_name == 'Interaction':
