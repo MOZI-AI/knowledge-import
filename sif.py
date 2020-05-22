@@ -44,9 +44,12 @@ class SIF:
         lines = []
         has_tab = False
         for line in fileobj.readlines():
-            line = line.decode('utf-8')
             match = tab_re.match(line)
             if match is not None:
                 has_tab = True
             lines.append(line)
         return lines, has_tab
+
+    def __len__(self):
+        return len(lines)
+
