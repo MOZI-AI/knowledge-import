@@ -26,6 +26,8 @@ class CNode(CAtom):
 class CLink(CAtom):
     def __init__(self, *atoms, stv=None):
         self.outgoing = atoms
+        for atom in atoms:
+            assert isinstance(atom, CAtom)
         self.stv = stv
 
 
