@@ -433,15 +433,25 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
     # controlled is a some interaction or control
     controlled_id = control.find('./bp:controlled[@rdf:resource]', ns).attrib['{{{0}}}resource'.format(ns['rdf'])]
 
-    controlled = process_component(pathway.find('./*[@rdf:about="{0}"]'.format(controlled_id), ns), 
+    controlled_elem =find_about_element(pathway, ns, controlled_id)
+    controlled = process_component(controlled_elem,
                                    pathway, ns, pathway_id, id_map, [])
     control_type = None
     if about(control, ns).startswith('pgkb.leadsTo'):
         print("leadsTo control is not implemented")
     elif about(control, ns).startswith('pgkb.control.transport'):
-        print("transport control is not implemented")
-        id_map[about(control, ns)] = result
-        return result
+        # handle the case when controlled is a pathway
+        if tag(controlled_elem) == 'Pathway':
+            for cont in controller:
+                mem = CMemberLink(cont,
+                            controlled[0])
+                result.append(mem)
+            id_map[about(control, ns)] = result
+            return result
+        else:
+            print("transport control is not implemented")
+            id_map[about(control, ns)] = result
+            return result
     else:
         control_type_elem = control.find('./bp:controlType', ns)
         if control_type_elem is not None:
@@ -516,6 +526,7 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
     elif elem.tag.endswith('Pathway'):
         name = elem.find('./bp:standardName', ns).text
         result.append(CInheritanceLink(CConceptNode(name), CConceptNode('pathway')))
+        result.append(CMemberLink(CConceptNode(name), CConceptNode(pathway_id)))
         id_map[about(elem, ns)] = [CConceptNode(name)]
         return result
     elif elem.tag.endswith('Dna') or elem.tag.endswith('Rna'):
