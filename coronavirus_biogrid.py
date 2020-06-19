@@ -21,35 +21,6 @@ import metadata
 from atomwrappers import *
 
 
-def evaLink(node1, node1_type, node2, node2_type, predicate, prefix1="", prefix2="", symmetric=False, stv=""):
-    if not (str(node1) in ["-", "nan"] or str(node2) in ["-", "nan"]):
-        if symmetric:
-            list_type = "SetLink"
-        else:
-            list_type = "ListLink"
-        return ("(EvaluationLink {}\n".format(stv) +
-                "\t (PredicateNode \"" + predicate + "\")\n" +
-                "\t ({} \n".format(list_type) +
-                "\t\t ({}".format(node1_type) + " \"" + prefix1 + str(node1) + "\")\n" +
-                "\t\t ({}".format(node2_type) + " \"" + prefix2 + str(node2) + "\")))\n")
-    else:
-        return ""
-
-
-def member(node1, node1_type, node2, node2_type, prefix1="", prefix2=""):
-    if not (str(node1) in ["-", "nan"] or str(node2) in ["-", "nan"]):
-        return ('(MemberLink\n' +
-                '\t({} "'.format(node1_type) + prefix1 + str(node1) + '")\n' +
-                '\t({} "'.format(node2_type) + prefix2 + str(node2) + '"))\n')
-    else:
-        return ""
-
-
-def add_taxonomy(taxonomy_id, node, fp):
-    member_ln = CMemberLink(node, CConceptNode("ncbi:" + str(taxonomy_id)))
-    fp.write(member_ln.recursive_print() + "\n")
-
-
 def define_protein_lns(gene_node, prot_node, bio_id, fp):
     express_ln = CEvaluationLink(CPredicateNode("expresses"), CListLink(gene_node, prot_node))
     gene_bio = CEvaluationLink(CPredicateNode("has_biogridID"),
@@ -160,18 +131,24 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
 
                     if taxonomy_id_1 == 2697049:
                         covid_genes.append(gene1)
-                        add_taxonomy(taxonomy_id_1, gene_node_1, f)
-                        add_taxonomy(taxonomy_id_1, prot_node_1, f)
+                        organism_ln_1 = CEvaluationLink(CPredicateNode("from_organism"), 
+                                        CListLink(gene_node_1, CConceptNode("ncbi:" + str(taxonomy_id_1))))
+                        organism_ln_2 = CEvaluationLink(CPredicateNode("from_organism"),
+                                        CListLink(prot_node_1, CConceptNode("ncbi:" + str(taxonomy_id_1))))
+                        f.write(organism_ln_1.recursive_print() + "\n")
+                        f.write(organism_ln_2.recursive_print() + "\n")
                         if gene_level:
-                            add_taxonomy(taxonomy_id_1, gene_node_1, g)
+                            g.write(organism_ln_1.recursive_print() + "\n")
                     if taxonomy_id_2 == 2697049:
                         covid_genes.append(gene2)
-
-                        add_taxonomy(taxonomy_id_2, gene_node_2, f)
-                        add_taxonomy(taxonomy_id_2, prot_node_2, f)
-
+                        organism_ln_1 = CEvaluationLink(CPredicateNode("from_organism"),
+                                                        CListLink(gene_node_2, CConceptNode("ncbi:" + str(taxonomy_id_2))))
+                        organism_ln_2 = CEvaluationLink(CPredicateNode("from_organism"),
+                                                        CListLink(prot_node_2, CConceptNode("ncbi:" + str(taxonomy_id_2))))
+                        f.write(organism_ln_1.recursive_print() + "\n")
+                        f.write(organism_ln_2.recursive_print() + "\n")
                         if gene_level:
-                            add_taxonomy(taxonomy_id_2, gene_node_2, g)
+                            g.write(organism_ln_1.recursive_print() + "\n")
 
                     gene_pairs.append((gene1, gene2))
 
@@ -187,9 +164,11 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                                             f)
 
                     protein_pairs.append((prot1, prot2))
-
-        f.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode", "has_name", prefix1="ncbi:"))
-        g.write(evaLink("2697049", "ConceptNode", "SARS-CoV-2", "ConceptNode", "has_name", prefix1="ncbi:"))
+        
+        org_name_ln = CEvaluationLink(CPredicateNode("has_name"),
+                                      CListLink(CConceptNode("ncbi:2697049"), CConceptNode("SARS-CoV-2")))
+        f.write(org_name_ln.recursive_print() + "\n")
+        g.write(org_name_ln.recursive_print() + "\n")
     gene_pairs = set((a, b) if a <= b else (b, a) for a, b in gene_pairs)
     number_of_interactions = len(gene_pairs)
     script = "https://github.com/MOZI-AI/knowledge-import/coronavirus_biogrid.py"
