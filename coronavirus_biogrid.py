@@ -95,8 +95,8 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                 score = data.iloc[i]['Score']
                 entrez1 = str(data.iloc[i]['Entrez Gene Interactor A']).strip()
                 entrez2 = str(data.iloc[i]['Entrez Gene Interactor B']).strip()
-                taxonomy_id_1 = int(data.iloc[i]['Organism ID Interactor A'])
-                taxonomy_id_2 = int(data.iloc[i]['Organism ID Interactor B'])
+                taxonomy_id_1 = int(data.iloc[i]['Organism Interactor A'])
+                taxonomy_id_2 = int(data.iloc[i]['Organism Interactor B'])
 
                 gene_node_1 = CGeneNode(gene1)
                 gene_node_2 = CGeneNode(gene2)
