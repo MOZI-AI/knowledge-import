@@ -142,51 +142,55 @@ for drug in xml_root:
 
 # Finally do the conversion for each of the drugs
 drug_groups = []
-for drug in xml_root:
-  drugbank_id = get_child_tag_text(drug, "drugbank-id")
+for drug_tag in xml_root:
+  drugbank_id = get_child_tag_text(drug_tag, "drugbank-id")
   standard_id = id_dict.get(drugbank_id)
-  name = get_child_tag_text(drug, "name").lower()
-  description = get_child_tag_text(drug, "description")
+  name = get_child_tag_text(drug_tag, "name").lower()
+  description = get_child_tag_text(drug_tag, "description")
 
   evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
 
   if description != None:
     evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description.replace("\"", "\\\"").strip())
 
-  for group in findall_tag(find_tag(drug, "groups"), "group"):
-    drug_group = group.text + " drug"
+  for group_tag in findall_tag(find_tag(drug_tag, "groups"), "group"):
+    drug_group = group_tag.text + " drug"
     inhlink("MoleculeNode", "ConceptNode", standard_id, drug_group)
     if drug_group not in drug_groups:
       inhlink("ConceptNode", "ConceptNode", drug_group, "drug")
       drug_groups.append(drug_group)
 
-  for article in findall_tag(find_tag(find_tag(drug, "general-references"), "articles"), "article"):
-    pubmed_id = get_child_tag_text(article, "pubmed-id")
+  general_references_tag = find_tag(drug_tag, "general-references")
+  articles_tag = find_tag(general_references_tag, "articles")
+  for article_tag in findall_tag(articles_tag, "article"):
+    pubmed_id = get_child_tag_text(article_tag, "pubmed-id")
     if pubmed_id != None:
       evalink("has_pubmedID", "MoleculeNode", "ConceptNode", standard_id, "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id)
 
-  for other_drug in findall_tag(find_tag(drug, "drug-interactions"), "drug-interaction"):
-    other_drug_drugbank_id = get_child_tag_text(other_drug, "drugbank-id")
+  drug_interactions_tag = find_tag(drug_tag, "drug-interactions")
+  for drug_interaction_tag in findall_tag(drug_interactions_tag, "drug-interaction"):
+    other_drug_drugbank_id = get_child_tag_text(drug_interaction_tag, "drugbank-id")
     other_drug_standard_id = id_dict.get(other_drug_drugbank_id)
     # For some reason a few of them are not in the 'full database' file?
     if other_drug_standard_id == None:
       other_drug_standard_id = other_drug_drugbank_id
     evalink("interacts_with", "MoleculeNode", "MoleculeNode", standard_id, other_drug_standard_id)
 
-  for pathway in findall_tag(find_tag(drug, "pathways"), "pathway"):
-    smpdb_id = get_child_tag_text(pathway, "smpdb-id")
-    for involved_drug in findall_tag(find_tag(pathway, "drugs"), "drug"):
-      involved_drug_drugbank_id = get_child_tag_text(involved_drug, "drugbank-id")
+  pathways_tag = find_tag(drug_tag, "pathways")
+  for pathway_tag in findall_tag(pathways_tag, "pathway"):
+    smpdb_id = get_child_tag_text(pathway_tag, "smpdb-id")
+    for involved_drug_tag in findall_tag(find_tag(pathway_tag, "drugs"), "drug"):
+      involved_drug_drugbank_id = get_child_tag_text(involved_drug_tag, "drugbank-id")
       involved_drug_standard_id = id_dict.get(involved_drug_drugbank_id)
       # For some reason a few of them are not in the 'full database' file?
       if involved_drug_standard_id == None:
         involved_drug_standard_id = involved_drug_drugbank_id
       memblink("MoleculeNode", "ConceptNode", involved_drug_standard_id, smpdb_id)
-    for uniprot_id in findall_tag(find_tag(pathway, "enzymes"), "uniprot-id"):
-      uniprot_id = uniprot_id.text
+    for uniprot_id_tag in findall_tag(find_tag(pathway_tag, "enzymes"), "uniprot-id"):
+      uniprot_id = uniprot_id_tag.text
       evalink("catalyzed_by", "ConceptNode", "MoleculeNode", smpdb_id, "Uniprot:" + uniprot_id)
 
-  targets_tag = find_tag(drug, "targets")
+  targets_tag = find_tag(drug_tag, "targets")
   for target_tag in findall_tag(targets_tag, "target"):
     be_id = get_child_tag_text(target_tag, "id")
     polupeptide_tag = find_tag(target_tag, "polypeptide")
