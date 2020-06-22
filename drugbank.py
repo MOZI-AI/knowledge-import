@@ -199,3 +199,4 @@ for drug in xml_root:
 
     # TODO: Generate as directional (ListLink) for all of them for now
     evalink(action, "MoleculeNode", "MoleculeNode", standard_id, target_id)
+    evalink("has_name", "MoleculeNode", "ConceptNode", target_id, name)
