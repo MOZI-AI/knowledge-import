@@ -185,3 +185,17 @@ for drug in xml_root:
     for uniprot_id in findall_tag(find_tag(pathway, "enzymes"), "uniprot-id"):
       uniprot_id = uniprot_id.text
       evalink("catalyzed_by", "ConceptNode", "MoleculeNode", smpdb_id, "Uniprot:" + uniprot_id)
+
+  targets_tag = find_tag(drug, "targets")
+  for target_tag in findall_tag(targets_tag, "target"):
+    be_id = get_child_tag_text(target_tag, "id")
+    polupeptide_tag = find_tag(target_tag, "polypeptide")
+    uniprot_id = polupeptide_tag.attrib["id"] if polupeptide_tag else None
+    name = get_child_tag_text(target_tag, "name").strip().lower()
+    action_tags = findall_tag(find_tag(target_tag, "actions"), "action")
+    # Some drug has an unknown action yet not marked as "unknown", use "unknown" as well for them
+    action = action_tags[0].text if action_tags else "unknown"
+    target_id = "Uniprot:" + uniprot_id if uniprot_id else "DrugBank:" + be_id
+
+    # TODO: Generate as directional (ListLink) for all of them for now
+    evalink(action, "MoleculeNode", "MoleculeNode", standard_id, target_id)
