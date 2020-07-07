@@ -59,6 +59,45 @@ class CConceptNode(CNode):
 class CMoleculeNode(CNode):
     atom_type = 'MoleculeNode'
 
+class CChebiNode(CNode):
+    atom_type = 'ChebiNode'
+
+class CUniprotNode(CNode):
+    atom_type = 'UniprotNode'
+
+class CRnaNode(CNode):
+    atom_type = 'RnaNode'
+
+class CPubchemNode(CNode):
+    atom_type = 'PubchemNode'
+
+class CCodingRna(CNode):
+    atom_type = 'CodingRna'
+
+class CNonCodingRna(CNode):
+    atom_type = 'NonCodingRna'
+
+class CPathwayNode(CNode):
+    atom_type = 'PathwayNode'
+
+class CReactomePathway(CNode):
+    atom_type = 'ReactomePathway'
+
+class CSmpPathway(CNode):
+    atom_type = 'SmpPathway'
+
+class CGoNode(CNode):
+    atom_type = 'GoNode'
+
+class CBiologicalProcess(CNode):
+    atom_type = 'BiologicalProcess'
+
+class CCellularComponent(CNode):
+    atom_type = 'CellularComponent'
+
+class CMolecularFunction(CNode):
+    atom_type = 'MolecularFunction'
+
 class CMemberLink(CLink):
     atom_type = 'MemberLink'
 
