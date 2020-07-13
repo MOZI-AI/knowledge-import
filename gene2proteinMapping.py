@@ -15,11 +15,9 @@ import os
 import math
 import metadata
 from datetime import date
+from atomwrappers import *
 
 # Define helper functions 
-
-def expres(predicate, node1, node2):
-    return ""+'\n(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t\t(ListLink \n'+ "\t\t"+ node1 + "\t\t"+ node2 +'))\n'
 
 script = "https://github.com/MOZI-AI/knowledge-import/gene2proteinMapping.py"
 
@@ -40,11 +38,15 @@ else:
                 p = data.iloc[i]['uniprot'].strip()
                 genes.append(g)
                 prot.append(p)
-                f.write(expres("expresses", '(GeneNode '+ '"' + g +'")\n', '(MoleculeNode "'+'Uniprot:'+ p+'")\n'))
+                expresion = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(g),ProteinNode(p)))
+                f.write(expresion.recursive_print())
             except:
                 continue
             if not math.isnan(data.iloc[i]['entrez']):
-                f.write(expres("has_entrez_id", '(GeneNode '+ '"' + g +'")\n', '(ConceptNode "'+'entrez:'+ str(int(data.iloc[i]['entrez']))+'")\n'))
+                entrez_id = str(int(data.iloc[i]['entrez']))
+                has_entrez = CEvaluationLink(CPredicateNode("has_entrez_id"), CListLink(CGeneNode(g),CConceptNode("entrez:"+entrez_id)))
+                f.write(has_entrez.recursive_print())
+
         metadata.update_meta("gene2proteinMapping:latest", 
         "entrez2uniprot.csv",script,genes=len(set(genes)),prot=len(set(prot)))
 

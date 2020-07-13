@@ -6,11 +6,9 @@ import os
 import metadata
 import pandas as pd
 from datetime import date
+from atomwrappers import *
 
 source = "ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/all_assembly_versions/GCF_000001405.25_GRCh37.p13/GCF_000001405.25_GRCh37.p13_feature_table.txt.gz"
-
-def expres(predicate, node1, node2):
-    return ""+'\n(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t(ListLink \n\t\t'+ node1 +'\n\t\t'+ node2 +'))\n'
 
 dataset = "GCF_000001405.25_GRCh37.p13_feature_table.txt.gz"
 if not dataset in os.listdir("raw_data/"):
@@ -35,8 +33,9 @@ with open("dataset/noncodingRNA_{}.scm".format(str(date.today())), 'w') as f:
             name = data.iloc[i]["name"]
             rnas.append(rna)
             genes.append(gene)
-            f.write(expres("transcribed_to", '(GeneNode "{}")'.format(gene), '(MoleculeNode "{}")'.format(rna)))
-            f.write(expres("has_name", '(MoleculeNode "{}")'.format(rna), '(ConceptNode "{}")'.format(name)))
+            transc = CEvaluationLink(CPredicateNode("transcribed_to"), CListLink(CGeneNode(gene),NcRNANode(rna)))
+            transc_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(NcRNANode(rna), CConceptNode("name")))
+            f.write(transc.recursive_print() + "\n" + transc_name.recursive_print())
 
 version = dataset.split(".")[1]
 script = "https://github.com/MOZI-AI/knowledge-import/noncodingRNA.py"

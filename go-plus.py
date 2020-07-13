@@ -8,49 +8,9 @@ import metadata
 import os
 import pandas as pd
 from datetime import date
-
-def get_term(class_id):
-    if str(class_id) == "nan":
-        term = class_id
-    else:
-        term = class_id.split("/")[-1]
-        if term.startswith("GO") or term.startswith("CL") or term.startswith("UBERON") or term.startswith("CHEBI"):
-            term = term.replace("_",":")
-            term = term.replace("CHEBI", "ChEBI")
-    return term
-
-def get_type(term, parent=False):
-    if "ChEBI" in term: 
-        if parent:
-            return "ConceptNode"
-        else:
-            return "MoleculeNode"
-    else:
-        return "ConceptNode"
-
-def evaLink(term1 , term2, predicate, parent_chebis=[]):
-    if not (str(term1) == "nan" or str(term2) == 'nan'):
-        return ("(EvaluationLink \n" +
-            "\t (PredicateNode \""+ predicate + "\")\n" +
-            "\t (ListLink \n" +
-            "\t\t ({}".format(get_type(term1, parent=is_parent(term1, parent_chebis)))  + " \"" + term1 + "\")\n" +
-            "\t\t ({}".format(get_type(term2, parent=is_parent(term2, parent_chebis))) + " \"" + term2 + "\")))\n" )
-    else:
-        return ""
-
-def is_parent(term, parent_chebis):
-    if term in parent_chebis:
-        return True
-    else:
-        return False
-
-def inheritLink(term1 , term2, parent_chebis=[]):
-    if not (str(term1) == "nan" or str(term2) == 'nan'):
-        return ("(InheritanceLink \n" +
-                "\t ({}".format(get_type(term1, parent=is_parent(term1, parent_chebis))) + " \"" + term1 + "\")\n" +
-                "\t ({}".format(get_type(term2, parent=is_parent(term2, parent_chebis))) + " \"" + term2 + "\"))\n")
-    else:
-        return ""
+import json
+from atomwrappers import *
+import find_gons 
 
 source = "https://bioportal.bioontology.org/ontologies/GO-PLUS"
 source_csv = "https://gitlab.com/opencog-bio/pln_mozi/blob/master/raw_data/GO-PLUS.csv.gz"
@@ -59,6 +19,43 @@ source_csv_latest = "http://data.bioontology.org/ontologies/GO-PLUS/download?api
 if not os.path.exists("raw_data/GO-PLUS.csv.gz"):
     dataset = wget.download(source_csv_latest, "raw_data")
 df = pd.read_csv("raw_data/GO-PLUS.csv.gz", dtype=str)
+
+with open("raw_data/go-namespace.json", "r") as ns:
+    go_namespace = json.load(ns)
+init_namespace = len(go_namespace)
+
+def get_term(class_id):
+    if str(class_id) == "nan":
+        term = False
+    else:
+        term = class_id.split("/")[-1]
+        if term.startswith("GO") or term.startswith("CL") or term.startswith("UBERON") or term.startswith("CHEBI"):
+            term = term.replace("_",":")
+            term = term.replace("CHEBI", "ChEBI")
+    return term
+
+def get_type(term, parent=[]):
+    if "UBERON" in term:
+        term = UberonNode(term)
+    elif "CL" in term:
+        term = CelltypeNode(term)
+    elif "GO:" in term:
+        term = find_namespace(term)
+    elif "ChEBI" in term:
+        if term in parent:
+            term = CConceptNode(term)
+        else:
+            term = ChebiNode(term)
+
+    else:
+        term = CConceptNode(term)
+    return term
+
+def find_namespace(go_term):
+    global go_namespace
+    go_namespace, go_term = find_gons.find_type(go_term, go_namespace)
+    return go_term
+
 # Parent CHEBI's should be a ConceptNode, not a MoleculeNode
 parents = df["Parents"]
 parent_chebis = []
@@ -67,9 +64,10 @@ for i in [i.split("|") for i in parents if str(i) != "nan"]:
         term = get_term(c)
         if "ChEBI" in term:
             parent_chebis.append(term)
-
+all_col = df.columns            
 go_columns = ["negatively regulated by","negatively regulates", "positively regulated by", "positively regulates", "regulated by", "regulates", "has part", "part of"]
 uberon_columns = open("raw_data/uberon_columns.txt", "r").read().splitlines()
+uberon_columns = [c for c in uberon_columns if c in all_col]
 cl_columns = ['has part', 'Parents', 'has role']
 
 if not os.path.exists("dataset/go-plus"):
@@ -92,36 +90,59 @@ for i in range(len(df)):
     try:
         term = get_term(df.iloc[i]["Class ID"])
         obsolete = df.iloc[i]["Obsolete"]
-        definition = df.iloc[i]["definition"]
-        if obsolete != "true" and "GO" in term:
-            go.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "GO_name"))
-            go_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "GO_name"))
-            go_with_def.write(evaLink(term, definition, "GO_definition"))
-            for col in go_columns:
-                """
-                positive/negatively regulated by is inverse of positive/negatively regulates
-                has part is inverse of part of, keep the predicate the same with reverse order
-                """
-                if col.endswith("regulated by"):
-                    col_pred = col.replace("regulated by", "regulates")
-                    go.write(evaLink(get_term(df.iloc[i][col]),term, "GO_{}".format(col_pred.replace(" ", "_"))))
-                    go_with_def.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col.replace(" ", "_"))))
-                elif col == "part of":
-                    col_pred = "has part" 
-                    go.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col_pred.replace(" ", "_"))))
-                    go_with_def.write(evaLink(get_term(df.iloc[i][col]), term, "GO_{}".format(col.replace(" ", "_"))))
-                else:                
-                    go.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
-                    go_with_def.write(evaLink(term, get_term(df.iloc[i][col]), "GO_{}".format(col.replace(" ", "_"))))
+        definition = CConceptNode(str(df.iloc[i]["definition"]))
+        if term and obsolete != "true" and "GO:" in term:
+            term = find_namespace(term) 
+            if term:
+                name = CConceptNode(get_term(df.iloc[i]["Preferred Label"]))
+                eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(term,name))
+                eva_defn = CEvaluationLink(CPredicateNode("has_definition"), CListLink(term,definition))
+                go.write(eva_name.recursive_print() + "\n")
+                go_with_def.write(eva_defn.recursive_print() + "\n" + eva_name.recursive_print() + "\n")
+                for col in go_columns:
+                    """
+                    positive/negatively regulated by is inverse of positive/negatively regulates
+                    has part is inverse of part of, keep the predicate the same with reverse order
+                    """
+                    if col.endswith("regulated by"):
+                        term2 = find_namespace(get_term(df.iloc[i][col]))
+                        if term2:
+                            col_pred = col.replace("regulated by", "regulates")
+                            col_pred = "GO_{}".format(col_pred.replace(" ", "_"))
+                            eva = CEvaluationLink(CPredicateNode(col_pred), CListLink(term, term2))
+                            go.write(eva.recursive_print() + "\n")
+                            go_with_def.write(eva.recursive_print() + "\n")
+                    elif col == "part of":
+                        term2 = find_namespace(get_term(df.iloc[i][col]))
+                        if term2:
+                            col_pred = "GO_has_part"
+                            eva = CEvaluationLink(CPredicateNode(col_pred), CListLink(term, term2)) 
+                            go.write(eva.recursive_print() + "\n")
+                            go_with_def.write(eva.recursive_print() + "\n")
+                    else:
+                        term2 = find_namespace(get_term(df.iloc[i][col]))
+                        if term2:
+                            col_pred = "GO_{}".format(col.replace(" ", "_"))
+                            eva = CEvaluationLink(CPredicateNode(col_pred), CListLink(term, term2))                 
+                            go.write(eva.recursive_print() + "\n")
+                            go_with_def.write(eva.recursive_print() + "\n")
 
-        elif obsolete != "true" and "UBERON" in term:
-            uberon.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-            uberon_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name"))
-            uberon_with_def.write(evaLink(term, definition, "UBERON_definition"))
+        elif term and obsolete != "true" and "UBERON" in term:
+            term = UberonNode(term)
+            name = get_term(df.iloc[i]["Preferred Label"])
+            eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(term, CConceptNode(name)))
+            eva_defn = CEvaluationLink(CPredicateNode("has_definition"), CListLink(term, definition))
+            uberon.write(eva_name.recursive_print() + "\n")
+            uberon_with_def.write(eva_name.recursive_print() + "\n"+ eva_defn.recursive_print() + "\n")
             for col in uberon_columns:
-                uberon.write(evaLink(term, get_term(df.iloc[i][col]), "UBERON_{}".format(col.replace(" ", "_"))))
+                term_2 = get_term(df.iloc[i][col])
+                if term_2:
+                    term_2 = get_type(term_2)
+                    col_pred = "UBERON_{}".format(col.replace(" ", "_"))
+                    eva = CEvaluationLink(CPredicateNode(col_pred), CListLink(term, term_2))
+                    uberon.write(eva.recursive_print() + "\n")
 
-        elif obsolete != "true" and "CL" in term or "ChEBI" in term:
+        elif term and obsolete != "true" and "CL" in term or "ChEBI" in term:
             if "CL" in term:
                 file_name = cl
                 file_name_with_def = cl_with_def
@@ -129,21 +150,30 @@ for i in range(len(df)):
                 file_name = chebi
                 file_name_with_def = chebi_with_def
 
-            file_name.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name", parent_chebis=parent_chebis))
-            file_name_with_def.write(evaLink(term, get_term(df.iloc[i]["Preferred Label"]), "has_name",parent_chebis=parent_chebis))
-            file_name_with_def.write(evaLink(term, definition, "has_definition", parent_chebis=parent_chebis))
+            term = get_type(term, parent=parent_chebis)
+            name = get_term(df.iloc[i]["Preferred Label"])
+            eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(term, CConceptNode(name)))
+            eva_defn = CEvaluationLink(CPredicateNode("has_definition"), CListLink(term, definition))
+            file_name.write(eva_name.recursive_print() + "\n")
+            file_name_with_def.write(eva_name.recursive_print() + "\n" + eva_defn.recursive_print() + "\n")
             for col in cl_columns:
                 if col == "Parents":
                     parents = df.iloc[i][col]
                     if str(parents) != "nan":
-                        for p in parents.split("|"): 
-                            file_name.write(inheritLink(term,get_term(p), parent_chebis=parent_chebis))
-                            file_name_with_def.write(inheritLink(term, get_term(p), parent_chebis=parent_chebis))
+                        for p in parents.split("|"):
+                            term2 = get_type(get_term(p), parent=parent_chebis)
+                            inherit = CInheritanceLink(term, term2) 
+                            file_name.write(inherit.recursive_print() + "\n")
+                            file_name_with_def.write(inherit.recursive_print() + "\n")
                 else:
-                    file_name.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
-                    file_name_with_def.write(evaLink(term, get_term(df.iloc[i][col]), col.replace(" ", "_"), parent_chebis=parent_chebis))
+                    term2 = get_term(df.iloc[i][col])
+                    if term2: 
+                        term2 = get_type(term2, parent=parent_chebis)
+                        eva_link = CEvaluationLink(CPredicateNode(col.replace(" ", "_")), CListLink(term, term2))
+                        file_name.write(eva_link.recursive_print() + "\n")
+                        file_name_with_def.write(eva_link.recursive_print() + "\n")
     except Exception as e:
-        print(e)
+        print("Exception {} at row {} ".format(e, i))
         continue
 print("Done")
             

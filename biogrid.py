@@ -114,7 +114,7 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
         number_of_genes = []
         for p in pairs.keys():
             gene_1 = CGeneNode(p.split(':')[0])
-            gene_2 = CGeneNode(p.split(':')[0])
+            gene_2 = CGeneNode(p.split(':')[1])
             interacts_ln = CEvaluationLink(CPredicateNode("interacts_with"), CSetLink(gene_1, gene_2))
             eval_ln = CEvaluationLink(CPredicateNode("has_pubmedID"), CListLink(
                 interacts_ln,

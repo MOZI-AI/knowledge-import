@@ -74,6 +74,45 @@ class CContextLink(CLink):
 class CInheritanceLink(CLink):
     atom_type = 'InheritanceLink'
 
+class CRNANode(CNode):
+    atom_type = 'CRNANode'
+
+class NcRNANode(CNode):
+    atom_type = 'NcRNANode'
+
+class ChebiNode(CNode):
+    atom_type = 'ChebiNode'
+
+class ProteinNode(CNode):
+    atom_type = 'ProteinNode'
+
+class PubchemNode(CNode):
+    atom_type = 'PubchemNode'
+
+class DrugbankNode(CNode):
+    atom_type = 'DrugbankNode'
+
+class ReactomeNode(CNode):
+    atom_type = 'ReactomeNode'
+
+class SMPNode(CNode):
+    atom_type = 'SMPNode'
+
+class CelltypeNode(CNode):
+    atom_type = 'CLNode'
+
+class UberonNode(CNode):
+    atom_type = 'UberonNode'
+
+class GoCCNode(CNode):
+    atom_type = 'GOCCNode'
+
+class GoMFNode(CNode):
+    atom_type = 'GOMFNode'
+
+class GoBPNode(CNode):
+    atom_type = 'GOBPNode'
+
 class CSetLink(CLink):
     atom_type = 'SetLink'
 

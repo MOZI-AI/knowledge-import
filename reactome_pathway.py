@@ -12,25 +12,17 @@ from urllib.request import urlopen
 import os
 import metadata
 from datetime import date
+from atomwrappers import *
 
-# Helper functions
-
-def eva(name, reid):
-	if 'R-HSA' in reid:
-		return ""+'(EvaluationLink \n \t(PredicateNode "has_name")\n \t(ListLink\n \t\t(ConceptNode "'+ reid.strip() + '")\n' + '\t\t(ConceptNode "'+ name.strip() + '")))\n'
-	else:
-		return ""
-
-def inherit(parent, child):
-	if 'R-HSA' in parent and 'R-HSA' in child:
-		return ""+'(InheritanceLink \n \t(ConceptNode "'+ child.strip() + '")\n' + '\t(ConceptNode "'+ parent.strip() + '"))\n'
-	else:
-		return ""
-
-# URL
-
+# URL's
 pathway_rln = "https://reactome.org/download/current/ReactomePathwaysRelation.txt"
 pathway = "https://reactome.org/download/current/ReactomePathways.txt"
+
+def homosapien(pathway_id):
+	if pathway_id.startswith("R-HSA"):
+		return True
+	else:
+		return False
 
 if not os.path.isfile('ReactomePathwaysRelation.txt'):
 	print("Downloading ReactomePathwaysRelation.txt")
@@ -55,16 +47,23 @@ script = "https://github.com/MOZI-AI/knowledge-import/reactome_pathway.py"
 pathways = pathway_relation['parent'].values + pathway_relation['child'].values
 if not os.path.exists(os.path.join(os.getcwd(), 'dataset')):
     os.makedirs('dataset')
-with open("dataset/reactome_{}.scm".format(str(date.today())), 'w') as f:
-    for i in range(max_len):
-        try:
-            f.write(eva(pathway_list.iloc[i]['name'],pathway_list.iloc[i]['ID']))
-            f.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
-        except IndexError:
-            f.write(inherit(pathway_relation.iloc[i]['parent'], pathway_relation.iloc[i]['child']))
+output = "dataset/reactome_{}.scm".format(str(date.today()))
+with open(output, 'w') as f:
+    for i in range(len(pathway_list)):
+        pw_name = pathway_list.iloc[i]['name']
+        pw_id = pathway_list.iloc[i]['ID']
+        eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ReactomeNode(pw_id), CConceptNode(pw_name)))
+        f.write(eva_name.recursive_print() + "\n")
+
+    for i in range(len(pathway_relation)):
+        pw_parent = pathway_relation.iloc[i]['parent']
+        pw_child = pathway_relation.iloc[i]['child']										
+        if homosapien(pw_child) and homosapien(pw_parent): 
+            inherit = CInheritanceLink(ReactomeNode(pw_child), ReactomeNode(pw_parent))
+            f.write(inherit.recursive_print() + "\n")						
+
 num_pathways = {"Reactome Pathway": len(set(pathways))}
 metadata.update_meta("Reactome Pathways relationship:latest", 
         pathway_rln+" "+pathway,script,pathways=num_pathways)
 
-print("Done")
-
+print("Done, check {}".format(output))
