@@ -18,7 +18,7 @@ with gzip.open("raw_data/goa_human.gaf.gz", "rb") as f:
 lines = [l.decode("utf-8") for l in lines]
 line_no = []
 
-with open("namespace_R.json", "r") as ns:
+with open("raw_data/go-namespace.json", "r") as ns:
     go_namespace = json.load(ns)
 init_namespace = len(go_namespace)
 

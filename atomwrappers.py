@@ -75,10 +75,10 @@ class CInheritanceLink(CLink):
     atom_type = 'InheritanceLink'
 
 class CRNANode(CNode):
-    atom_type = 'CRNANode'
+    atom_type = 'CrnaNode'
 
 class NcRNANode(CNode):
-    atom_type = 'NcRNANode'
+    atom_type = 'NcrnaNode'
 
 class ChebiNode(CNode):
     atom_type = 'ChebiNode'
@@ -96,22 +96,22 @@ class ReactomeNode(CNode):
     atom_type = 'ReactomeNode'
 
 class SMPNode(CNode):
-    atom_type = 'SMPNode'
+    atom_type = 'SmpNode'
 
 class CelltypeNode(CNode):
-    atom_type = 'CLNode'
+    atom_type = 'Clnode'
 
 class UberonNode(CNode):
     atom_type = 'UberonNode'
 
 class GoCCNode(CNode):
-    atom_type = 'GOCCNode'
+    atom_type = 'GoccNode'
 
 class GoMFNode(CNode):
-    atom_type = 'GOMFNode'
+    atom_type = 'GomfNode'
 
 class GoBPNode(CNode):
-    atom_type = 'GOBPNode'
+    atom_type = 'GobpNode'
 
 class CSetLink(CLink):
     atom_type = 'SetLink'

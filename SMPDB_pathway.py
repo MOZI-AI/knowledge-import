@@ -22,6 +22,7 @@ import wget
 import metadata
 from datetime import date
 from atomwrappers import *
+import argparse
 
 script = "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py"
 
@@ -107,8 +108,8 @@ def import_proteins(gene_level=False):
 
                 member = CMemberLink(CGeneNode(gene), SMPNode(smpdb_id))
                 expression = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene), ProteinNode(protein)))
-                smp_name = CEvaluationLink(CPredictaeNode("has_name"), CListLink(SMPNode(smpdb_id), CConceptNode(smpdb_name)))
-                prot_name = CEvaluationLink(CPredicteNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(protein_name)))
+                smp_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(SMPNode(smpdb_id), CConceptNode(smpdb_name)))
+                prot_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(protein_name)))
                 f.write(expression.recursive_print() + "\n")
                 f.write(member.recursive_print() + "\n")
                 if gene_level:
@@ -123,18 +124,21 @@ def import_proteins(gene_level=False):
     metadata.update_meta("smpdb_proteins: Latest",source, script,genes=len(genes), prot=len(proteins),pathways=num_pathways)
     print("Done. Check dataset/smpdb_protein.scm and gene-level/smpdb_gene.scm")
 
+def parse_arg():
+	parser = argparse.ArgumentParser(description='Imports metabolite and protein sets of SMPDB pathway from http://smpdb.ca/downloads')
+	parser.add_argument('--option', type=str, default='all',
+                        help='which dataset to import: P for proteins, M for metabolites')
+	return parser.parse_args()
+
 ## Import them
 if __name__ == "__main__":
-	print("Import the following files from Small molecule database \n" +
-	      "Press M to import Metabolite names linked to SMPDB pathways \n"+
-	      "Press P to import Protein names linked to SMPDB pathways \n"+
-	      "Press B for both\n")
-	option = input()
+
+	option = parse_arg().option
 	if option == "P" or option == "p":
 		import_proteins(gene_level=True)
 	elif option == "M" or option == "m":
 		import_metabolites(gene_level=True)
-	elif option == "B" or option == "b":
+	elif option == "B" or option == "all":
 		import_proteins(gene_level=True)
 		import_metabolites(gene_level=True)
 	else:
