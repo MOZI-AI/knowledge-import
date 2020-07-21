@@ -75,22 +75,19 @@ class CInheritanceLink(CLink):
     atom_type = 'InheritanceLink'
 
 class CRNANode(CNode):
-    atom_type = 'CrnaNode'
+    atom_type = 'CodingRnaNode'
 
 class NcRNANode(CNode):
-    atom_type = 'NcrnaNode'
+    atom_type = 'NonCodingRnaNode'
 
 class ChebiNode(CNode):
     atom_type = 'ChebiNode'
 
 class ProteinNode(CNode):
-    atom_type = 'ProteinNode'
+    atom_type = 'UniprotNode'
 
 class PubchemNode(CNode):
     atom_type = 'PubchemNode'
-
-class DrugbankNode(CNode):
-    atom_type = 'DrugbankNode'
 
 class ReactomeNode(CNode):
     atom_type = 'ReactomeNode'
@@ -99,19 +96,19 @@ class SMPNode(CNode):
     atom_type = 'SmpNode'
 
 class CelltypeNode(CNode):
-    atom_type = 'Clnode'
+    atom_type = 'CellNode'
 
 class UberonNode(CNode):
     atom_type = 'UberonNode'
 
 class GoCCNode(CNode):
-    atom_type = 'GoccNode'
+    atom_type = 'CellularComponentNode'
 
 class GoMFNode(CNode):
-    atom_type = 'GomfNode'
+    atom_type = 'MolecularFunctionNode'
 
 class GoBPNode(CNode):
-    atom_type = 'GobpNode'
+    atom_type = 'BiologicalProcessNode'
 
 class CSetLink(CLink):
     atom_type = 'SetLink'
