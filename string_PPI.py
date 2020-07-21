@@ -8,26 +8,11 @@ import os
 import sys
 import metadata
 import datetime
+from atomwrappers import *
 
 source = "https://stringdb-static.org/download/protein.actions.v11.0/9606.protein.actions.v11.0.txt.gz"
 mapping = "https://string-db.org/mapping_files/uniprot/human.uniprot_2_string.2018.tsv.gz"
 
-def evaLink(term1, term2, predicate, link_type="ListLink",stv="", ppi=True):
-    if not (str(term1) == "nan" or str(term2) == 'nan'):
-        if ppi:
-            return("(EvaluationLink" + stv + "\n" +
-                "\t (PredicateNode \""+ predicate + "\")\n" +
-                "\t (" + link_type + " \n" +
-                "\t\t (MoleculeNode" + " \"Uniprot:" + term1 + "\")\n" +
-                "\t\t (MoleculeNode" + " \"Uniprot:" + term2 + "\")))\n" )
-        else:
-            return("(EvaluationLink" + stv + "\n" +
-            "\t (PredicateNode \""+ predicate + "\")\n" +
-            "\t (" + link_type + " \n" +
-            "\t\t (GeneNode" + " \"" + term1.upper() + "\")\n" +
-            "\t\t (GeneNode" + " \"" + term2.upper() + "\")))\n" )
-    else:
-        return ""
 def import_string():
     print("started at " + str(datetime.datetime.now()))
     if not os.path.exists('raw_data/9606.protein.actions.v11.0.txt.gz'):
@@ -92,13 +77,14 @@ def import_string():
                         notmapped.append(prot2)
                     continue
                 
-                protein1 = prot1.split("|")[0]
-                gene1 = prot1.split("|")[1].split("_")[0] 
-                protein2 = prot2.split("|")[0]
-                gene2 = prot2.split("|")[1].split("_")[0]
+                protein1 = ProteinNode(prot1.split("|")[0])
+                gene1 = CGeneNode(prot1.split("|")[1].split("_")[0].upper()) 
+                protein2 = ProteinNode(prot2.split("|")[0])
+                gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
+                stv = "(stv {} {})".format(1.0, score/1000)
 
-                f.write(evaLink(protein1, protein2, mode, stv="(stv {} {})".format(1.0, score/1000),link_type="SetLink"))
-                g.write(evaLink(gene1, gene2, mode,stv="(stv {} {})".format(1.0, score/1000), link_type="SetLink", ppi=False))  
+                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(protein1, protein2), stv=stv)) + "\n")
+                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(gene1, gene2), stv=stv)) + "\n")
                 symmetric[gene1 + gene2] = mode
 
             except Exception as e:
@@ -121,18 +107,19 @@ def import_string():
                         notmapped.append(prot2)
                     continue
                 
-                protein1 = prot1.split("|")[0]
-                gene1 = prot1.split("|")[1].split("_")[0] 
-                protein2 = prot2.split("|")[0]
-                gene2 = prot2.split("|")[1].split("_")[0]
+                protein1 = ProteinNode(prot1.split("|")[0])
+                gene1 = CGeneNode(prot1.split("|")[1].split("_")[0].upper()) 
+                protein2 = ProteinNode(prot2.split("|")[0])
+                gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
+                stv = "(stv {} {})".format(1.0, score/1000)
 
                 if not (gene1+gene2 in symmetric.keys() and symmetric[gene1+gene2] == mode):
                     if a_is_acting is "t": 
-                        f.write(evaLink(protein1, protein2, mode, stv="(stv {} {})".format(1.0, score/1000)))
-                        g.write(evaLink(gene1, gene2, mode, stv="(stv {} {})".format(1.0, score/1000), ppi=False))
+                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein1, protein2), stv=stv)) + "\n")
+                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene1, gene2), stv=stv)) + "\n")
                     else:
-                        f.write(evaLink(protein2, protein1, mode, stv="(stv {} {})".format(1.0, score/1000)))
-                        g.write(evaLink(gene2, gene1, mode, ppi=False, stv="(stv {} {})".format(1.0, score/1000)))
+                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein2, protein1), stv=stv)) + "\n")
+                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene2, gene1), stv=stv)) + "\n")
 
             except Exception as e:
                 print(e)

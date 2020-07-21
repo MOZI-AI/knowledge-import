@@ -9,9 +9,7 @@ import os
 import metadata
 import pandas as pd
 from datetime import date
-
-def expres(predicate, node1, node2):
-    return ""+'\n(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t(ListLink \n\t\t'+ node1 +'\n\t\t'+ node2 +'))\n'
+from atomwrappers import *
 
 source = "ftp://ftp.ensembl.org/pub/grch37/release-98/tsv/homo_sapiens/Homo_sapiens.GRCh37.85.uniprot.tsv.gz"
 dataset = "Homo_sapiens.GRCh37.85.uniprot.tsv.gz"
@@ -41,9 +39,11 @@ with open("dataset/codingRNA_{}.scm".format(str(date.today())), 'w') as f:
         genes.append(gene)
         proteins.append(prot)
         if gene:
-            f.write(expres("transcribed_to", '(GeneNode "{}")'.format(gene), '(MoleculeNode "{}")'.format(rna)))
+            trans = CEvaluationLink(CPredicateNode("transcribed_to"), CListLink(CGeneNode(gene),CRNANode(rna)))
+            f.write(trans.recursive_print() + "\n")
         if rna:
-            f.write(expres("translated_to", '(MoleculeNode "{}")'.format(rna), '(MoleculeNode "Uniprot:{}")'.format(prot)))
+            trans = CEvaluationLink(CPredicateNode("translated_to"), CListLink(CRNANode(rna), ProteinNode(prot)))
+            f.write(trans.recursive_print() + "\n")
 
 version = dataset.split(".")[1]
 script = "https://github.com/MOZI-AI/knowledge-import/codingRNA.py"

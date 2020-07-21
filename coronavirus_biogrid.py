@@ -101,8 +101,8 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                 gene_node_1 = CGeneNode(gene1)
                 gene_node_2 = CGeneNode(gene2)
 
-                prot_node_1 = CMoleculeNode("Uniprot:" + prot1)
-                prot_node_2 = CMoleculeNode("Uniprot:" + prot2)
+                prot_node_1 = ProteinNode(prot1)
+                prot_node_2 = ProteinNode(prot2)
 
                 stv_node = None
                 if not str(score) in ["-", "nan"]:

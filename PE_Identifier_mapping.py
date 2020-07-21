@@ -16,6 +16,8 @@ import os
 import sys
 import metadata
 from datetime import date
+from atomwrappers import *
+import argparse
 
 # Get each of the files first
 
@@ -30,41 +32,11 @@ script = "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py"
 # Or modify the file names in this code to match yours.
 
 def get_data(name):
-
-	print("Downloading the datasets, It might take a while")
-
-	if(name in ["N", "n", "A", "a"]):
-		if(not os.path.isfile('raw_data/NCBI2Reactome_PE_Pathway.txt')): 
-			wget.download(ncbi, "raw_data/")
-
-	if(name in ["U", "u", "A", "a"]):
-		if(not os.path.isfile('raw_data/UniProt2Reactome_PE_Pathway.txt')): 
-			wget.download(uniprot, "raw_data/")
-
-	if(name in ["C", "c", "A", "a"]):
-		if(not os.path.isfile('raw_data/ChEBI2Reactome_PE_Pathway.txt')):
-			wget.download(chebi, "raw_data/")
-
-	print("Done")
-
-# Helper functions for Atomese representation
-def member(indiv, group):
-	if "Uniprot" in indiv or "ChEBI" in indiv:
-		return ""+"(MemberLink \n \t(MoleculeNode "+'"'+ indiv + '")\n' + '\t(ConceptNode "'+ group + '"))\n\n'
-	else:
-    		return ""+"(MemberLink \n \t(GeneNode "+'"'+ indiv + '")\n' + '\t(ConceptNode "'+ group + '"))\n\n'
-
-def eva(pred, el1, el2):
-    if pred == 'e':
-        pred = "has_evidence_code"
-    elif pred == 'l':
-        pred = "has_location"
-    elif pred == 'n':
-        pred = "has_name"
-    if "Uniprot" in el1 or "ChEBI" in el1 or "Uniprot" in el2 or "ChEBI" in el2:
-    	return ""+'(EvaluationLink \n \t(PredicateNode "' + pred +'")\n \t\t(ListLink\n \t\t\t(MoleculeNode "'+ el1.strip() + '")\n' + '\t\t\t(ConceptNode "'+ el2.strip() + '")))\n\n'
-    else:
-    	return ""+'(EvaluationLink \n \t(PredicateNode "' + pred +'")\n \t\t(ListLink\n \t\t\t(GeneNode "'+ el1.strip() + '")\n' + '\t\t\t(ConceptNode "'+ el2.strip() + '")))\n\n'
+	for data in name:
+		if(not os.path.isfile('raw_data/{}'.format(data.split('/')[-1]))):
+			print("Downloading the datasets, It might take a while") 
+			wget.download(data, "raw_data/")
+			print("Done")
 
 # The column 'R_PE_name' contains the Gene Symbol and its location information, so we need to split it
 # Example: A1BG [extracellular region]
@@ -85,23 +57,6 @@ def find_location(PEname, filter=False):
 	if filter:
 		return gene
 	return gene,loc
-
-# Finds the common word in a list of strings 
-def findstem(arr): 
-	n = len(arr) 
-	s = arr[0] 
-	l = len(s) 
-	res = "" 
-	for i in range(l): 
-		for j in range( i + 1, l + 1):
-			stem = s[i:j] 
-			k = 1
-			for k in range(1, n): 
-				if stem not in arr[k]: 
-					break
-			if (k + 1 == n and len(res) < len(stem)): 
-				res = stem 
-	return res.strip()
 
 def import_dataset(dataset, delim, without_location=False):
 	print("Started importing " + dataset)
@@ -125,7 +80,6 @@ def import_dataset(dataset, delim, without_location=False):
 		if "NCBI" in dataset:
 			genes = []
 			pathways = []
-			non_exist = []
 			infered = {}
 			gene_symbols = mapping_entrez["Approved symbol"].values
 			for i in range(len(data_human)):
@@ -146,15 +100,15 @@ def import_dataset(dataset, delim, without_location=False):
 							gene = gene_sym
 							infered[str(db_id)] = gene
 						else:
-							# non_exist.append(gene_sym + '\t' +str(db_id))
 							continue
 				if not gene.isdigit() and not len(gene) == 1 and not gene in ["", " "]:
 					gene = gene.strip()
-					f.write("(ContextLink\n")
-					f.write(member(gene, pathway))
-					f.write(eva('l', gene, location))
-					f.write(")\n")
-					file_name.write(member(gene, pathway))
+					member = CMemberLink(CGeneNode(gene),ReactomeNode(pathway))
+					eva = CEvaluationLink(CPredicateNode("has_location"), CListLink(CGeneNode(gene), CConceptNode(location)))
+					cont = CContextLink(member, eva)
+					f.write(cont.recursive_print())
+					if without_location:
+						file_name.write(member.recursive_print())
 					if not gene in genes:
 						genes.append(gene)
 					if not pathway in pathways:
@@ -172,13 +126,16 @@ def import_dataset(dataset, delim, without_location=False):
 				pathway = data_human.iloc[i]['pathway']
 				protein = [i for i in str(data_human.iloc[i]['db_id']).split("-") if not i.strip().isdigit()][-1]
 				protein = protein.strip()
-				f.write("(ContextLink\n")
-				f.write(member("Uniprot:"+str(protein), pathway))
-				f.write(eva('l', "Uniprot:"+str(protein), loc))
-				f.write(")\n")
+				member = CMemberLink(ProteinNode(protein), ReactomeNode(pathway))
+				eva_loc = CEvaluationLink(CPredicateNode("has_location"), CListLink(ProteinNode(protein), CConceptNode(loc)))
+				eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(prot_name)))
+				cont = CContextLink(member, eva_loc)
+				f.write(cont.recursive_print())
+				if without_location:
+					file_name.write(member.recursive_print())
 				if not protein in molecules:
 					molecules.append(protein)
-					f.write(eva("n", "Uniprot:"+str(protein), prot_name))
+					f.write(eva_name.recursive_print())
 				if not pathway in pathways:
 					pathways.append(pathway)
 			version = "Uniprot2reactome_pathway_mapping:latest"
@@ -195,15 +152,16 @@ def import_dataset(dataset, delim, without_location=False):
 				if not chebi_id is "nan":
 					chebi_id = chebi_id.strip()
 					pathway = data_human.iloc[i]['pathway']
-					f.write("(ContextLink \n")
-					f.write(member("ChEBI:"+chebi_id, pathway))
-					f.write(eva('l', "ChEBI:"+chebi_id, loc))
-					f.write(")\n")
+					member = CMemberLink(ChebiNode(chebi_id), ReactomeNode(pathway))
+					eva_loc = CEvaluationLink(CPredicateNode("has_location"), CListLink(ChebiNode(chebi_id), CConceptNode(loc)))
+					eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ChebiNode(chebi_id), CConceptNode(chebi_name)))
+					cont = CContextLink(member, eva_loc)
+					f.write(cont.recursive_print())
 					if without_location:
-						file_name.write(member("ChEBI:"+chebi_id, pathway))
+						file_name.write(member.recursive_print())
 					if not chebi_id in molecules:
 						molecules.append(chebi_id)
-						f.write(eva("n","ChEBI:"+chebi_id, chebi_name))
+						f.write(eva_name.recursive_print())
 					if not pathway in pathways:
 						pathways.append(pathway)
 			version = "Chebi2reactome_pathway_mapping:latest"
@@ -211,38 +169,33 @@ def import_dataset(dataset, delim, without_location=False):
 			metadata.update_meta(version,ncbi,script,chebi=len(molecules),pathways=num_pathways)
 	print("Done")
 
-if __name__ == "__main__":
-	print('''Import the following files from https://reactome.org 
-	      "Press N to import NCBI2Reactome_PE_Pathway 
-	      "Press U to import UniProt2Reactome_PE_Pathway 
-	      "Press C to import ChEBI2Reactome_PE_Pathway 
-	      "Press A for All \n''')
+def parse_arg():
+	parser = argparse.ArgumentParser(description='Import Physical entities to pathway mapping from https://reactome.org')
+	parser.add_argument('--option', type=str, default='all',
+                        help='which dataset to import: prot, chebi, ncbi')
+	return parser.parse_args()
 
-	option = input()
-	if option == "N" or option == "n":
-		get_data(option)
+if __name__ == "__main__":
+
+	option = parse_arg().option
+	if option == "ncbi":
+		get_data([ncbi])
 		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
-	elif option == "U" or option == "u":
-		get_data(option)
+	elif option == "prot":
+		get_data([uniprot])
 		import_dataset('raw_data/UniProt2Reactome_PE_Pathway.txt', '\t')
 
-	elif option == "C" or option == "c":
-		# get_data(option)
+	elif option == "chebi":
+		get_data([chebi])
 		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
-	elif option == "A" or option == "a":
-		get_data(option)
+	elif option == "all":
+		get_data([chebi, uniprot, ncbi])
 		import_dataset('raw_data/NCBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 
 		import_dataset('raw_data/UniProt2Reactome_PE_Pathway.txt', '\t')
 
 		import_dataset('raw_data/ChEBI2Reactome_PE_Pathway.txt', '\t', without_location=True)
 	else:
-	    print("Incorect option, Try again")
-
-
-
-
-
-
+	    print("Specify the correct option, Try again")

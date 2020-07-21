@@ -11,11 +11,10 @@ import wget
 import gzip
 import metadata
 from datetime import date
+from atomwrappers import *
+import json
+import find_gons
 
-# Define helper functions 
-
-def inherit(node1, node2):
-    return ""+'\n(MemberLink \n\t'+ node1 +'\n\t'+ node2 +')\n'
 dataset_url = "http://current.geneontology.org/annotations/goa_human_isoform.gaf.gz"
 lines = []
 prot = []
@@ -27,13 +26,25 @@ if not os.path.isfile('raw_data/goa_human_isoform_valid.gaf'):
 else:
     lines = open('raw_data/goa_human_isoform_valid.gaf').readlines()
 
+with open("raw_data/go-namespace.json", "r") as ns:
+    go_namespace = json.load(ns)
+init_namespace = len(go_namespace)
+
 with open("dataset/uniprot2GO_{}.scm".format(str(date.today())), 'w') as f:
     print("\nStarted importing")
     for i in lines:
         if 'UniProtKB' in i:
-            f.write(inherit('(MoleculeNode "'+ 'Uniprot:'+i.split('\t')[1] + '")', '(ConceptNode "' + i.split('\t')[4] + '")'))
+            go_namespace, go_term = find_gons.find_type(i.split('\t')[4], go_namespace)
+            protein = ProteinNode(i.split('\t')[1])
+            if go_term:
+                f.write(CInheritanceLink(protein,go_term).recursive_print() + "\n")
             prot.append(i.split('\t')[1])
-            go.append(i.split('\t')[4])
+            go.append(go_term)
+
+if len(go_namespace) > init_namespace:
+    with open("raw_data/go-namespace.json", "w") as ns:
+        json.dump(go_namespace, ns, indent=2)
+
 script = "https://github.com/MOZI-AI/knowledge-import/uniprot2GO.py"
 metadata.update_meta("Uniprot-GO:latest", dataset_url,script,prot=len(set(prot)), goterms={"go-terms":len(set(go))})
 print("Done, check dataset/uniprot2GO.scm")
