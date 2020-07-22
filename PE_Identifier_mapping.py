@@ -106,9 +106,9 @@ def import_dataset(dataset, delim, without_location=False):
 					member = CMemberLink(CGeneNode(gene),ReactomeNode(pathway))
 					eva = CEvaluationLink(CPredicateNode("has_location"), CListLink(CGeneNode(gene), CConceptNode(location)))
 					cont = CContextLink(member, eva)
-					f.write(cont.recursive_print())
+					f.write(cont.recursive_print() + "\n")
 					if without_location:
-						file_name.write(member.recursive_print())
+						file_name.write(member.recursive_print() + "\n")
 					if not gene in genes:
 						genes.append(gene)
 					if not pathway in pathways:
@@ -130,12 +130,12 @@ def import_dataset(dataset, delim, without_location=False):
 				eva_loc = CEvaluationLink(CPredicateNode("has_location"), CListLink(ProteinNode(protein), CConceptNode(loc)))
 				eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(prot_name)))
 				cont = CContextLink(member, eva_loc)
-				f.write(cont.recursive_print())
+				f.write(cont.recursive_print() + "\n")
 				if without_location:
-					file_name.write(member.recursive_print())
+					file_name.write(member.recursive_print() + "\n")
 				if not protein in molecules:
 					molecules.append(protein)
-					f.write(eva_name.recursive_print())
+					f.write(eva_name.recursive_print() + "\n")
 				if not pathway in pathways:
 					pathways.append(pathway)
 			version = "Uniprot2reactome_pathway_mapping:latest"
@@ -150,18 +150,18 @@ def import_dataset(dataset, delim, without_location=False):
 				chebi_name = chebi.split("[" +loc +"]")[0].replace('"',"")
 				chebi_id = str(data_human.iloc[i]['db_id'])
 				if not chebi_id is "nan":
-					chebi_id = chebi_id.strip()
+					chebi_id = "ChEBI:"+ str(chebi_id.strip())
 					pathway = data_human.iloc[i]['pathway']
 					member = CMemberLink(ChebiNode(chebi_id), ReactomeNode(pathway))
 					eva_loc = CEvaluationLink(CPredicateNode("has_location"), CListLink(ChebiNode(chebi_id), CConceptNode(loc)))
 					eva_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ChebiNode(chebi_id), CConceptNode(chebi_name)))
 					cont = CContextLink(member, eva_loc)
-					f.write(cont.recursive_print())
+					f.write(cont.recursive_print() + "\n")
 					if without_location:
-						file_name.write(member.recursive_print())
+						file_name.write(member.recursive_print() + "\n")
 					if not chebi_id in molecules:
 						molecules.append(chebi_id)
-						f.write(eva_name.recursive_print())
+						f.write(eva_name.recursive_print() + "\n")
 					if not pathway in pathways:
 						pathways.append(pathway)
 			version = "Chebi2reactome_pathway_mapping:latest"
