@@ -39,12 +39,20 @@ class CLink(CAtom):
         return '({0} {1})'.format(self.atom_type, outgoing)
 
     def recursive_print(self, result='', indent=''):
-        result += indent + '({0}'.format(self.atom_type)
-        indent = indent + '    '
-        for x in self.outgoing:
-            result = x.recursive_print(result + '\n', indent)
-        result += ')'
-        return result
+        if self.stv is not None:
+            result += indent + '({0} {1}'.format(self.atom_type, self.stv)
+            indent = indent + '    '
+            for x in self.outgoing:
+                result = x.recursive_print(result + '\n', indent)
+            result += ')'
+            return result
+        else:
+            result += indent + '({0}'.format(self.atom_type)
+            indent = indent + '    '
+            for x in self.outgoing:
+                result = x.recursive_print(result + '\n', indent)
+            result += ')'
+            return result
 
 
 class CEvaluationLink(CLink):
