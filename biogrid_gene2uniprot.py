@@ -9,10 +9,9 @@ __email__ = "hedra@singularitynet.io"
 
 import os
 from datetime import date
-
 import pandas as pd
-
 import metadata
+from atomwrappers import *
 
 script = "https://github.com/MOZI-AI/knowledge-import/biogrid_gene2uniprot.py"
 
@@ -34,22 +33,11 @@ def to_atomese(data):
                     genes.append(gene)
                 if prot not in proteins:
                     proteins.append(prot)
-                f.write(
-                '(EvaluationLink \n'+
-                '\t(PredicateNode "expresses")\n'+
-                    '\t(ListLink \n' +
-                    '\t\t(GeneNode "'+ gene +'")\n' +
-                    '\t\t(MoleculeNode "Uniprot:'+ prot +'")))\n\n' +
-                '(EvaluationLink \n' +
-                '\t(PredicateNode "has_biogridID")\n'+
-                    '\t(ListLink \n' +
-                    '\t\t(MoleculeNode "Uniprot:'+ prot +'")\n'+
-                    '\t\t(ConceptNode "Bio:'+biogrid_id+'")))\n\n'+
-                '(EvaluationLink \n' +
-                '\t(PredicateNode "has_biogridID")\n'+
-                    '\t(ListLink \n' +
-                    '\t\t(GeneNode "'+ gene +'")\n'+
-                    '\t\t(ConceptNode "Bio:'+biogrid_id+'")))\n\n')
+                expresion = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene),ProteinNode(prot)))
+                bio_prot = CEvaluationLink(CPredicateNode("has_biogridID"), CListLink(ProteinNode(prot), CConceptNode("Bio:"+biogrid_id)))
+                bio_gene = CEvaluationLink(CPredicateNode("has_biogridID"), CListLink(CGeneNode(gene), CConceptNode("Bio:"+biogrid_id)))
+                f.write("\n".join([x.recursive_print() for x in [expresion, bio_prot, bio_gene]]))
+                
     metadata.update_meta("Biogrid-Gene2uniprot:latest", 
         "uniprot2biogrid.csv, gene2biogrid.csv",script,genes=str(len(genes)),prot=len(proteins))
     print("Done, check {}".format(output_file))

@@ -21,19 +21,10 @@ from io import BytesIO
 import wget
 import metadata
 from datetime import date
+from atomwrappers import *
+import argparse
 
 script = "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py"
-
-def atomese(node1, node1_type, node2, node2_type, node1_prefix="", node2_prefix="", predicate=False):
-    if node1.lower() != "nan" and node2.lower() != "nan":
-        atom1 = '({} "{}{}")'.format(node1_type, node1_prefix, node1)
-        atom2 = '({} "{}{}")'.format(node2_type, node2_prefix, node2)
-        if predicate:
-            return '(EvaluationLink \n'+'\t(PredicateNode "'+ predicate +'")\n'+'\t(ListLink \n\t\t'+ atom1 +'\n\t\t'+ atom2 +'))\n'
-        else:
-            return '(MemberLink \n'+'\t'+ atom1 +'\n\t'+ atom2 +')\n'
-    else:
-        return ""
 
 def import_metabolites(gene_level=False):
     pathways = []
@@ -70,9 +61,11 @@ def import_metabolites(gene_level=False):
                 if not smpdb_id in pathways:
                     pathways.append(smpdb_id) 
 
-                f.write(atomese(chebi_id, 'MoleculeNode', smpdb_id, 'ConceptNode', node1_prefix='ChEBI:') )
-                g.write(atomese(chebi_id, 'MoleculeNode', smpdb_id, 'ConceptNode', node1_prefix='ChEBI:') )
-                f.write(atomese(chebi_id, 'MoleculeNode', chebi_name, 'ConceptNode', node1_prefix='ChEBI:', predicate='has_name') )
+                member = CMemberLink(ChebiNode(chebi_id), SMPNode(smpdb_id))
+                ch_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ChebiNode(chebi_id), CConceptNode(chebi_name)))
+                f.write(member.recursive_print() + "\n")
+                g.write(member.recursive_print() + "\n")
+                f.write(ch_name.recursive_print() + "\n")
 
     num_pathways = {"SMPDB Pathway": len(pathways)} 
     metadata.update_meta("smpdb_metabolites: Latest",source, script,chebi=len(chebis), pathways=num_pathways)        
@@ -113,13 +106,17 @@ def import_proteins(gene_level=False):
                 if not smpdb_id in pathways:
                    pathways.append(smpdb_id)   
 
-                f.write(atomese(gene, 'GeneNode', protein, 'MoleculeNode',node2_prefix='Uniprot:', predicate='expresses') )
-                f.write(atomese(gene, 'GeneNode', smpdb_id, 'ConceptNode'))
+                member = CMemberLink(CGeneNode(gene), SMPNode(smpdb_id))
+                expression = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene), ProteinNode(protein)))
+                smp_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(SMPNode(smpdb_id), CConceptNode(smpdb_name)))
+                prot_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(protein_name)))
+                f.write(expression.recursive_print() + "\n")
+                f.write(member.recursive_print() + "\n")
                 if gene_level:
-                   g.write(atomese(gene, 'GeneNode', smpdb_id, 'ConceptNode'))
-                f.write(atomese(protein, 'MoleculeNode', smpdb_id, 'ConceptNode', node1_prefix='Uniprot:'))
-                f.write(atomese(smpdb_id, 'ConceptNode', smpdb_name, 'ConceptNode', predicate='has_name'))
-                f.write(atomese(protein, 'MoleculeNode', protein_name, 'ConceptNode',node1_prefix='Uniprot:', predicate='has_name'))
+                   g.write(member.recursive_print() + "\n")
+                f.write(member.recursive_print() + "\n")
+                f.write(smp_name.recursive_print() + "\n")
+                f.write(prot_name.recursive_print() + "\n")
 
             # print("Imported "+filename)
     
@@ -127,18 +124,21 @@ def import_proteins(gene_level=False):
     metadata.update_meta("smpdb_proteins: Latest",source, script,genes=len(genes), prot=len(proteins),pathways=num_pathways)
     print("Done. Check dataset/smpdb_protein.scm and gene-level/smpdb_gene.scm")
 
+def parse_arg():
+	parser = argparse.ArgumentParser(description='Imports metabolite and protein sets of SMPDB pathway from http://smpdb.ca/downloads')
+	parser.add_argument('--option', type=str, default='all',
+                        help='which dataset to import: P for proteins, M for metabolites')
+	return parser.parse_args()
+
 ## Import them
 if __name__ == "__main__":
-	print("Import the following files from Small molecule database \n" +
-	      "Press M to import Metabolite names linked to SMPDB pathways \n"+
-	      "Press P to import Protein names linked to SMPDB pathways \n"+
-	      "Press B for both\n")
-	option = input()
+
+	option = parse_arg().option
 	if option == "P" or option == "p":
 		import_proteins(gene_level=True)
 	elif option == "M" or option == "m":
 		import_metabolites(gene_level=True)
-	elif option == "B" or option == "b":
+	elif option == "B" or option == "all":
 		import_proteins(gene_level=True)
 		import_metabolites(gene_level=True)
 	else:
