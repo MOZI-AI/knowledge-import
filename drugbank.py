@@ -7,6 +7,7 @@ import requests
 import wget
 import xml.etree.ElementTree as ET
 from datetime import date
+from atomwrappers import *
 
 xml_file = "raw_data/drugbank/full database.xml"
 tag_prefix = "{http://www.drugbank.ca}"
@@ -27,29 +28,14 @@ def findall_tag(obj, tag):
 def get_child_tag_text(obj, tag):
   return find_tag(obj, tag).text
 
-def evalink(pred, node_type1, node_type2, node1, node2):
-  print("--- Creating EvaluationLink with:\npredicate = {}\nnode1 = {}\nnode2 = {}\n".format(pred, node1, node2))
-  out_fp.write("(EvaluationLink\n")
-  out_fp.write("\t(PredicateNode \"" + pred + "\")\n")
-  out_fp.write("\t(ListLink\n")
-  out_fp.write("\t\t(" + node_type1 + " \"" + node1 + "\")\n")
-  out_fp.write("\t\t(" + node_type2 + " \"" + node2 + "\")\n")
-  out_fp.write("\t)\n")
-  out_fp.write(")\n")
-
-def memblink(node_type1, node_type2, node1, node2):
-  print("--- Creating MemberLink with:\nnode1 = {}\nnode2 = {}\n".format(node1, node2))
-  out_fp.write("(MemberLink\n")
-  out_fp.write("\t(" + node_type1 + " \"" + node1 + "\")\n")
-  out_fp.write("\t(" + node_type2 + " \"" + node2 + "\")\n")
-  out_fp.write(")\n")
-
-def inhlink(node_type1, node_type2, node1, node2):
-  print("--- Creating InheritanceLink with:\nnode1 = {}\nnode2 = {}\n".format(node1, node2))
-  out_fp.write("(InheritanceLink\n")
-  out_fp.write("\t(" + node_type1 + " \"" + node1 + "\")\n")
-  out_fp.write("\t(" + node_type2 + " \"" + node2 + "\")\n")
-  out_fp.write(")\n")
+def find_mol_type(mol):
+  if "CHEBI:" in mol.upper():
+    mol_type = ChebiNode(mol)
+  elif "PubChem:" in mol or "PubChemSID" in mol:
+    mol_type = PubchemNode(mol)
+  else:
+    mol_type = CMoleculeNode(mol)
+  return mol_type
 
 def get_pubchem_cid(sid):
   print("--- Getting PubChem CID for SID:{}\n".format(sid))
@@ -148,16 +134,22 @@ for drug_tag in xml_root:
   name = get_child_tag_text(drug_tag, "name").lower()
   description = get_child_tag_text(drug_tag, "description")
 
-  evalink("has_name", "MoleculeNode", "ConceptNode", standard_id, name)
+  standard_id = find_mol_type(standard_id)
+  evalink = CEvaluationLink(CPredicateNode("has_name"), CListLink(standard_id, CConceptNode(name)))
+  out_fp.write(evalink.recursive_print() + "\n")
 
   if description != None:
-    evalink("has_description", "MoleculeNode", "ConceptNode", standard_id, description.replace("\"", "\\\"").strip())
+    description = description.replace("\"", "\\\"").strip()
+    evalink = CEvaluationLink(CPredicateNode("has_description"), CListLink(standard_id, CConceptNode(description)))
+    out_fp.write(evalink.recursive_print() + "\n")
 
   for group_tag in findall_tag(find_tag(drug_tag, "groups"), "group"):
     drug_group = group_tag.text + " drug"
-    inhlink("MoleculeNode", "ConceptNode", standard_id, drug_group)
+    inhlink = CInheritanceLink(standard_id, CConceptNode(drug_group))
+    out_fp.write(inhlink.recursive_print() + "\n")
     if drug_group not in drug_groups:
-      inhlink("ConceptNode", "ConceptNode", drug_group, "drug")
+      inhlink = CInheritanceLink(CConceptNode(drug_group), CConceptNode("drug"))
+      out_fp.write(inhlink.recursive_print() + "\n")
       drug_groups.append(drug_group)
 
   general_references_tag = find_tag(drug_tag, "general-references")
@@ -165,7 +157,9 @@ for drug_tag in xml_root:
   for article_tag in findall_tag(articles_tag, "article"):
     pubmed_id = get_child_tag_text(article_tag, "pubmed-id")
     if pubmed_id != None:
-      evalink("has_pubmedID", "MoleculeNode", "ConceptNode", standard_id, "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id)
+      pubmed_id = "https://www.ncbi.nlm.nih.gov/pubmed/?term=" + pubmed_id
+      evalink = CEvaluationLink(CPredicateNode("has_pubmedID"), CListLink(standard_id, CConceptNode(pubmed_id)))
+      out_fp.write(evalink.recursive_print() + "\n")
 
   drug_interactions_tag = find_tag(drug_tag, "drug-interactions")
   for drug_interaction_tag in findall_tag(drug_interactions_tag, "drug-interaction"):
@@ -174,7 +168,10 @@ for drug_tag in xml_root:
     # For some reason a few of them are not in the 'full database' file?
     if other_drug_standard_id == None:
       other_drug_standard_id = other_drug_drugbank_id
-    evalink("interacts_with", "MoleculeNode", "MoleculeNode", standard_id, other_drug_standard_id)
+    
+    other_drug_standard_id = find_mol_type(other_drug_standard_id)
+    evalink = CEvaluationLink(CPredicateNode("interacts_with"), CListLink(standard_id, other_drug_standard_id))
+    out_fp.write(evalink.recursive_print() + "\n")
 
   pathways_tag = find_tag(drug_tag, "pathways")
   for pathway_tag in findall_tag(pathways_tag, "pathway"):
@@ -185,10 +182,15 @@ for drug_tag in xml_root:
       # For some reason a few of them are not in the 'full database' file?
       if involved_drug_standard_id == None:
         involved_drug_standard_id = involved_drug_drugbank_id
-      memblink("MoleculeNode", "ConceptNode", involved_drug_standard_id, smpdb_id)
+      
+      involved_drug_standard_id = find_mol_type(involved_drug_standard_id)
+      memberlink = CMemberLink(involved_drug_standard_id, SMPNode(smpdb_id))
+      out_fp.write(memberlink.recursive_print() + "\n") 
+
     for uniprot_id_tag in findall_tag(find_tag(pathway_tag, "enzymes"), "uniprot-id"):
       uniprot_id = uniprot_id_tag.text
-      evalink("catalyzed_by", "ConceptNode", "MoleculeNode", smpdb_id, "Uniprot:" + uniprot_id)
+      evalink = CEvaluationLink(CPredicateNode("catalyzed_by"), CListLink(SMPNode(smpdb_id), ProteinNode(uniprot_id)))
+      out_fp.write(evalink.recursive_print() + "\n")
 
   targets_tag = find_tag(drug_tag, "targets")
   for target_tag in findall_tag(targets_tag, "target"):
@@ -202,5 +204,8 @@ for drug_tag in xml_root:
     target_id = "Uniprot:" + uniprot_id if uniprot_id else "DrugBank:" + be_id
 
     # TODO: Generate as directional (ListLink) for all of them for now
-    evalink(action, "MoleculeNode", "MoleculeNode", standard_id, target_id)
-    evalink("has_name", "MoleculeNode", "ConceptNode", target_id, name)
+    target_id = find_mol_type(target_id)
+    evalink = CEvaluationLink(CPredicateNode(action), CListLink(standard_id, target_id))
+    out_fp.write(evalink.recursive_print() + "\n")
+    evalink = CEvaluationLink(CPredicateNode("has_name"), CListLink(target_id, CConceptNode(name)))
+    out_fp.write(evalink.recursive_print() + "\n")
