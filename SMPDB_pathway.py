@@ -52,20 +52,25 @@ def import_metabolites(gene_level=False):
             data = pd.read_csv("raw_data/smpdb_chebi/"+filename, low_memory=False)
 
             for r,c in data.iterrows():
-                chebi_id = str(data.iloc[r]['ChEBI ID']).split(".")[0].strip()
-                smpdb_id = str(data.iloc[r]['SMPDB ID']).strip()
-                chebi_name = str(data.iloc[r]['IUPAC']).strip()
-
-                if not chebi_id in chebis:
-                    chebis.append(chebi_id)
-                if not smpdb_id in pathways:
-                    pathways.append(smpdb_id) 
-
-                member = CMemberLink(ChebiNode(chebi_id), SMPNode(smpdb_id))
-                ch_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ChebiNode(chebi_id), CConceptNode(chebi_name)))
-                f.write(member.recursive_print() + "\n")
-                g.write(member.recursive_print() + "\n")
-                f.write(ch_name.recursive_print() + "\n")
+                chebi_id = filter_nan(str(data.iloc[r]['ChEBI ID']).split(".")[0].strip())
+                smpdb_id = filter_nan(str(data.iloc[r]['SMPDB ID']).strip())
+                chebi_name = filter_nan(str(data.iloc[r]['IUPAC']).strip())
+                try:
+                    if chebi_id: 
+                        chebi_id= "ChEBI:" + chebi_id 
+                    member = CMemberLink(ChebiNode(chebi_id), SMPNode(smpdb_id))
+                    f.write(member.recursive_print() + "\n")
+                    if gene_level:
+                        g.write(member.recursive_print() + "\n")
+                    if not chebi_id in chebis:
+                        ch_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ChebiNode(chebi_id), CConceptNode(chebi_name)))
+                        f.write(ch_name.recursive_print() + "\n")
+                        chebis.append(chebi_id)
+                    if not smpdb_id in pathways:
+                        pathways.append(smpdb_id)
+                except AttributeError:
+                    print("Null value detected")
+                    continue
 
     num_pathways = {"SMPDB Pathway": len(pathways)} 
     metadata.update_meta("smpdb_metabolites: Latest",source, script,chebi=len(chebis), pathways=num_pathways)        
@@ -93,36 +98,41 @@ def import_proteins(gene_level=False):
         for filename in pathway_prot:
             data = pd.read_csv("raw_data/smpdb_prot/"+filename, low_memory=False)
             for r,c in data.iterrows():
-                protein = str(data.iloc[r]['Uniprot ID']).split(".")[0].strip()
-                protein_name = str(data.iloc[r]['Protein Name']).strip() 
-                gene = str(data.iloc[r]['Gene Name']).upper().strip()
-                smpdb_id = str(data.iloc[r]['SMPDB ID']).strip()
-                smpdb_name = str(data.iloc[r]['Pathway Name']).strip()
-
-                if not protein in proteins:
-                   proteins.append(protein)
-                if not gene in genes:
-                   genes.append(gene)
-                if not smpdb_id in pathways:
-                   pathways.append(smpdb_id)   
-
-                member = CMemberLink(CGeneNode(gene), SMPNode(smpdb_id))
-                expression = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene), ProteinNode(protein)))
-                smp_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(SMPNode(smpdb_id), CConceptNode(smpdb_name)))
-                prot_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(protein_name)))
-                f.write(expression.recursive_print() + "\n")
-                f.write(member.recursive_print() + "\n")
-                if gene_level:
-                   g.write(member.recursive_print() + "\n")
-                f.write(member.recursive_print() + "\n")
-                f.write(smp_name.recursive_print() + "\n")
-                f.write(prot_name.recursive_print() + "\n")
-
-            # print("Imported "+filename)
+                protein = filter_nan(str(data.iloc[r]['Uniprot ID']).split(".")[0].strip())
+                protein_name = filter_nan(str(data.iloc[r]['Protein Name']).strip()) 
+                gene = filter_nan(str(data.iloc[r]['Gene Name']).upper().strip())
+                smpdb_id = filter_nan(str(data.iloc[r]['SMPDB ID']).strip())
+                smpdb_name = filter_nan(str(data.iloc[r]['Pathway Name']).strip())
+                try:
+                    member = CMemberLink(CGeneNode(gene), SMPNode(smpdb_id))
+                    f.write(member.recursive_print() + "\n")
+                    expression = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene), ProteinNode(protein)))
+                    f.write(expression.recursive_print() + "\n")                    
+                    if gene_level:
+                        g.write(member.recursive_print() + "\n")
+                    if not smpdb_id in pathways:
+                        smp_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(SMPNode(smpdb_id), CConceptNode(smpdb_name)))
+                        f.write(smp_name.recursive_print() + "\n")
+                        pathways.append(smpdb_id)
+                    if not protein in proteins:
+                        prot_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(ProteinNode(protein), CConceptNode(protein_name)))
+                        f.write(prot_name.recursive_print() + "\n")
+                        proteins.append(protein)
+                    if not gene in genes:
+                        genes.append(gene)
+                except AttributeError:
+                    print("Null value detected")
+                    continue
     
     num_pathways = {"SMPDB Pathway": len(pathways)} 
     metadata.update_meta("smpdb_proteins: Latest",source, script,genes=len(genes), prot=len(proteins),pathways=num_pathways)
     print("Done. Check dataset/smpdb_protein.scm and gene-level/smpdb_gene.scm")
+
+def filter_nan(value):
+    if str(value).lower() == "nan":
+        return False
+    else:
+        return str(value)
 
 def parse_arg():
 	parser = argparse.ArgumentParser(description='Imports metabolite and protein sets of SMPDB pathway from http://smpdb.ca/downloads')
@@ -130,7 +140,6 @@ def parse_arg():
                         help='which dataset to import: P for proteins, M for metabolites')
 	return parser.parse_args()
 
-## Import them
 if __name__ == "__main__":
 
 	option = parse_arg().option
