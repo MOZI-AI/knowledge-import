@@ -33,6 +33,8 @@ def find_mol_type(mol):
     mol_type = ChebiNode(mol)
   elif "PubChem:" in mol or "PubChemSID" in mol:
     mol_type = PubchemNode(mol)
+  elif "Uniprot:" in mol:
+    mol_type = ProteinNode(mol.split(":")[-1])
   else:
     mol_type = CMoleculeNode(mol)
   return mol_type
