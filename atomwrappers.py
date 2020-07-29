@@ -103,6 +103,9 @@ class ReactomeNode(CNode):
 class SMPNode(CNode):
     atom_type = 'SmpNode'
 
+class PharmGkbNode(CNode):
+    atom_type = 'PharmGkbNode'
+
 class CelltypeNode(CNode):
     atom_type = 'CellNode'
 
