@@ -20,11 +20,15 @@ def find_type(go_term, go_ns_dict, go_ns=False):
 
 def request_api(go_term):
     requestURL = "https://www.ebi.ac.uk/QuickGO/services/ontology/go/terms/{}".format(go_term)
-    result = requests.get(requestURL, headers={ "Accept" : "application/json"})
+    result = requests.get(requestURL, headers={ "Accept" : "application/json"}, timeout=10)
     if result.ok:
         result = json.loads(result.text)
         namespace = result['results'][0]['aspect']
         return namespace
+    elif result.status_code == 400:
+        return False
+    else:
+        raise "Failure to get result from {}".format(requestURL)
 
 def match_type(go_ns, go_term):
     if go_ns in ["BP","biological_process"]:
