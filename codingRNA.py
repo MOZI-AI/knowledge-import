@@ -33,7 +33,7 @@ proteins = []
 with open("dataset/codingRNA_{}.scm".format(str(date.today())), 'w') as f:
     for i in range(len(df)):
         rna = df.iloc[i]["transcript_stable_id"]
-        gene = df.iloc[i]['Approved symbol'].strip()
+        gene = df.iloc[i]['Approved symbol'].strip().upper()
         prot = df.iloc[i]["xref"]
         rnas.append(rna)
         genes.append(gene)
