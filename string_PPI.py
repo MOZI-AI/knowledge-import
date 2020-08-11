@@ -83,9 +83,9 @@ def import_string():
                 gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
                 stv = "(stv {} {})".format(1.0, score/1000)
 
-                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(protein1, protein2), stv=stv)) + "\n")
-                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(gene1, gene2), stv=stv)) + "\n")
-                symmetric[gene1 + gene2] = mode
+                f.write(CEvaluationLink(CPredicateNode(mode), CSetLink(protein1, protein2), stv=stv).recursive_print() + "\n")
+                f.write(CEvaluationLink(CPredicateNode(mode), CSetLink(gene1, gene2), stv=stv).recursive_print() + "\n")
+                symmetric[gene1.name + gene2.name] = mode
 
             except Exception as e:
                 print(e)
@@ -113,13 +113,13 @@ def import_string():
                 gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
                 stv = "(stv {} {})".format(1.0, score/1000)
 
-                if not (gene1+gene2 in symmetric.keys() and symmetric[gene1+gene2] == mode):
+                if not (gene1.name + gene2.name in symmetric.keys() and symmetric[gene1.name + gene2.name] == mode):
                     if a_is_acting is "t": 
-                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein1, protein2), stv=stv)) + "\n")
-                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene1, gene2), stv=stv)) + "\n")
+                        f.write(CEvaluationLink(CPredicateNode(mode), CListLink(protein1, protein2), stv=stv).recursive_print() + "\n")
+                        g.write(CEvaluationLink(CPredicateNode(mode), CListLink(gene1, gene2), stv=stv).recursive_print() + "\n")
                     else:
-                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein2, protein1), stv=stv)) + "\n")
-                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene2, gene1), stv=stv)) + "\n")
+                        f.write(CEvaluationLink(CPredicateNode(mode), CListLink(protein2, protein1), stv=stv).recursive_print() + "\n")
+                        g.write(CEvaluationLink(CPredicateNode(mode), CListLink(gene2, gene1), stv=stv).recursive_print() + "\n")
 
             except Exception as e:
                 print(e)

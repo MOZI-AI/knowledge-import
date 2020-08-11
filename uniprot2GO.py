@@ -37,7 +37,7 @@ with open("dataset/uniprot2GO_{}.scm".format(str(date.today())), 'w') as f:
             go_namespace, go_term = find_gons.find_type(i.split('\t')[4], go_namespace)
             protein = ProteinNode(i.split('\t')[1])
             if go_term:
-                f.write(CInheritanceLink(protein,go_term).recursive_print() + "\n")
+                f.write(CMemberLink(protein,go_term).recursive_print() + "\n")
             prot.append(i.split('\t')[1])
             go.append(go_term)
 

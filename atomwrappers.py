@@ -83,10 +83,10 @@ class CInheritanceLink(CLink):
     atom_type = 'InheritanceLink'
 
 class CRNANode(CNode):
-    atom_type = 'CodingRnaNode'
+    atom_type = 'EnstNode'
 
 class NcRNANode(CNode):
-    atom_type = 'NonCodingRnaNode'
+    atom_type = 'RefseqNode'
 
 class ChebiNode(CNode):
     atom_type = 'ChebiNode'
