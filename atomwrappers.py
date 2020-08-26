@@ -121,6 +121,9 @@ class GoMFNode(CNode):
 class GoBPNode(CNode):
     atom_type = 'BiologicalProcessNode'
 
+class ChebiOntology(CNode):
+    atom_type = 'ChebiOntology'
+
 class CSetLink(CLink):
     atom_type = 'SetLink'
 
