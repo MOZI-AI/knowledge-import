@@ -43,7 +43,7 @@ def get_type(term, parent=[]):
         term = find_namespace(term)
     elif "ChEBI" in term:
         if term in parent:
-            term = CConceptNode(term)
+            term = ChebiOntology(term)
         else:
             term = ChebiNode(term)
 
