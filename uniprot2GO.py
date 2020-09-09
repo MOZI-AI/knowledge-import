@@ -15,16 +15,16 @@ from atomwrappers import *
 import json
 import find_gons
 
-dataset_url = "http://current.geneontology.org/annotations/goa_human_isoform.gaf.gz"
+dataset_url = "http://current.geneontology.org/annotations/goa_human.gaf.gz"
 lines = []
 prot = []
 go = []
-if not os.path.isfile('raw_data/goa_human_isoform_valid.gaf'):
+if not os.path.isfile('raw_data/goa_human.gaf.gz'):
     print("Downloading dataset")
     lines = gzip.open(wget.download(dataset_url, "raw_data/")).readlines()
     lines = [l.decode("utf-8") for l in lines]
 else:
-    lines = open('raw_data/goa_human_isoform_valid.gaf').readlines()
+    lines = open('raw_data/goa_human.gaf.gz').readlines()
 
 with open("raw_data/go-namespace.json", "r") as ns:
     go_namespace = json.load(ns)
