@@ -57,7 +57,7 @@ def import_string():
     
         Keep symmetric relations and ignore if the same relation happens to be asymmetric
     """
-    interaction_modes = ["catalysis","inhibition","expression","activation","binding","reaction"]
+    interaction_modes = ["catalysis","inhibition","expression","activation","binding","reaction","ptmod"]
     symmetric = {}
     if not os.path.exists(os.path.join(os.getcwd(), 'string_dataset')):
         os.makedirs('string_dataset')
