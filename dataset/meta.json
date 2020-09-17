@@ -6,27 +6,37 @@
         "Source": "https://reactome.org/download/current/ReactomePathwaysRelation.txt https://reactome.org/download/current/ReactomePathways.txt",
         "Number of Reactome Pathway": 21254,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/reactome_pathway.py",
-        "Import Date ": "2020-07-08"
+        "Import Date ": "2020-07-21"
       }
     ],
-    "Biogrid-Gene2uniprot": [
+    "NCBI2reactome_pathway_mapping": [
       {
         "Version": "latest",
-        "Source": "uniprot2biogrid.csv, gene2biogrid.csv",
-        "Number of Genes ": "16452",
-        "Number of Proteins ": 16348,
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/biogrid_gene2uniprot.py",
-        "Import Date ": "2020-07-08"
+        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
+        "Number of Genes ": 10700,
+        "Number of Reactome Pathway": 1951,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
+        "Import Date ": "2020-07-21"
       }
     ],
-    "Biogrid": [
+    "Uniprot2reactome_pathway_mapping": [
       {
-        "Version": "3.5.187",
-        "Source": "https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/BIOGRID-ORGANISM-LATEST.tab2.zip",
-        "Number of Genes ": "21097",
-        "Number of interactions ": "457741",
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/biogrid.py",
-        "Import Date ": "2020-07-09"
+        "Version": "latest",
+        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
+        "Number of Proteins ": 11234,
+        "Number of Reactome Pathway": 1971,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
+        "Import Date ": "2020-07-21"
+      }
+    ],
+    "Chebi2reactome_pathway_mapping": [
+      {
+        "Version": "latest",
+        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
+        "Number of Small Molecules ": 2131,
+        "Number of Reactome Pathway": 1707,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
+        "Import Date ": "2020-07-21"
       }
     ],
     "GO_Annotation": [
@@ -36,28 +46,7 @@
         "Number of Genes ": 19581,
         "Number of go-terms": 18448,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/GO_Annotation_scm.py",
-        "Import Date ": "2020-07-10"
-      }
-    ],
-    "codingRNA": [
-      {
-        "Version": "GRCh37",
-        "Source": "Homo_sapiens.GRCh37.85.uniprot.tsv.gz",
-        "Number of Genes ": 19089,
-        "Number of coding RNA's ": 84950,
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/codingRNA.py",
-        "Import Date ": "2020-07-09"
-      }
-    ],
-    "Coronavirus Biogrid": [
-      {
-        "Version": "3.5.187",
-        "Source": "https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/BIOGRID-CORONAVIRUS-LATEST.tab3.zip",
-        "Number of Genes ": "1534",
-        "Number of Proteins ": 1514,
-        "Number of interactions ": "2132",
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/coronavirus_biogrid.py",
-        "Import Date ": "2020-07-09"
+        "Import Date ": "2020-07-21"
       }
     ],
     "GO Obo": [
@@ -68,47 +57,99 @@
         "Number of molecular_function": 11139,
         "Number of cellular_component": 4183,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/GO_scm.py",
-        "Import Date ": "2020-07-10"
-      }
-    ],
-    "NCBI2reactome_pathway_mapping": [
-      {
-        "Version": "latest",
-        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
-        "Number of Genes ": 10700,
-        "Number of Reactome Pathway": 1951,
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
-        "Import Date ": "2020-07-09"
-      }
-    ],
-    "Uniprot2reactome_pathway_mapping": [
-      {
-        "Version": "latest",
-        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
-        "Number of Proteins ": 11234,
-        "Number of Reactome Pathway": 1971,
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
-        "Import Date ": "2020-07-09"
-      }
-    ],
-    "Chebi2reactome_pathway_mapping": [
-      {
-        "Version": "latest",
-        "Source": "https://reactome.org/download/current/NCBI2Reactome_PE_Pathway.txt",
-        "Number of Small Molecules ": 2131,
-        "Number of Reactome Pathway": 1707,
-        "Import script": "https://github.com/MOZI-AI/knowledge-import/PE_Identifier_mapping.py",
-        "Import Date ": "2020-07-09"
+        "Import Date ": "2020-07-21"
       }
     ],
     "Uniprot-GO": [
       {
         "Version": "latest",
-        "Source": "http://current.geneontology.org/annotations/goa_human_isoform.gaf.gz",
-        "Number of Proteins ": 34787,
-        "Number of go-terms": 103520,
+        "Source": "http://current.geneontology.org/annotations/goa_human.gaf.gz",
+        "Number of Proteins ": 19751,
+        "Number of go-terms": 589772,
         "Import script": "https://github.com/MOZI-AI/knowledge-import/uniprot2GO.py",
-        "Import Date ": "2020-07-10"
+        "Import Date ": "2020-09-03"
+      }
+    ],
+    "Biogrid-Gene2uniprot": [
+      {
+        "Version": "latest",
+        "Source": "uniprot2biogrid.csv, gene2biogrid.csv",
+        "Number of Genes ": "16452",
+        "Number of Proteins ": 16348,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/biogrid_gene2uniprot.py",
+        "Import Date ": "2020-07-21"
+      }
+    ],
+    "Coronavirus Biogrid": [
+      {
+        "Version": "3.5.187",
+        "Source": "https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-3.5.187/BIOGRID-CORONAVIRUS-3.5.187.tab3.zip",
+        "Number of Genes ": "1534",
+        "Number of Proteins ": 1514,
+        "Number of interactions ": "2132",
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/coronavirus_biogrid.py",
+        "Import Date ": "2020-09-14"
+      }
+    ],
+    "gene2proteinMapping": [
+      {
+        "Version": "latest",
+        "Source": "entrez2uniprot.csv",
+        "Number of Genes ": 26462,
+        "Number of Proteins ": 151498,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/gene2proteinMapping.py",
+        "Import Date ": "2020-09-17"
+      }
+    ],
+    "codingRNA": [
+      {
+        "Version": "GRCh37",
+        "Source": "Homo_sapiens.GRCh37.85.uniprot.tsv.gz",
+        "Number of Genes ": 19089,
+        "Number of coding RNA's ": 84950,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/codingRNA.py",
+        "Import Date ": "2020-09-16"
+      }
+    ],
+    "noncodingRNA": [
+      {
+        "Version": "25_GRCh37",
+        "Source": "GCF_000001405.25_GRCh37.p13_feature_table.txt.gz",
+        "Number of Genes ": 11544,
+        "Number of Non-coding RNA's ": 16566,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/noncodingRNA.py",
+        "Import Date ": "2020-08-10"
+      }
+    ],
+    "Biogrid": [
+      {
+        "Version": "4.0.189",
+        "Source": "https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/BIOGRID-ORGANISM-LATEST.tab2.zip",
+        "Number of Genes ": "21122",
+        "Number of interactions ": "460049",
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/biogrid.py",
+        "Import Date ": "2020-09-14"
+      }
+    ],
+    "smpdb_proteins": [
+      {
+        "Version": " Latest",
+        "Source": "http://smpdb.ca/downloads/smpdb_proteins.csv.zip",
+        "Number of Genes ": 1423,
+        "Number of Proteins ": 1430,
+        "Number of SMPDB Pathway": 48641,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py",
+        "Import Date ": "2020-07-22"
+      }
+    ],
+    "smpdb_metabolites": [
+      {
+        "Version": " Latest",
+        "Source": "http://smpdb.ca/downloads/smpdb_metabolites.csv.zip",
+        "Number of Small Molecules ": 1467,
+        "Number of SMPDB Pathway": 48669,
+        "Import script": "https://github.com/MOZI-AI/knowledge-import/SMPDB_pathway.py",
+        "Import Date ": "2020-07-22"
       }
     ]
   }
