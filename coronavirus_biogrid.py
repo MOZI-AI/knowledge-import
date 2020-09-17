@@ -112,13 +112,13 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
 
                     if not gene1 in entrez:
                         entrez_ln_1 = CEvaluationLink(CPredicateNode("has_entrez_id"),
-                                                      CListLink(gene_node_1, CConceptNode("entrez:" + entrez1)))
+                                                      CListLink(gene_node_1, Entrez(entrez1)))
                         f.write(entrez_ln_1.recursive_print() + "\n")
                         entrez.append(gene1)
 
                     if not gene2 in entrez:
                         eval_ln_2 = CEvaluationLink(CPredicateNode("has_entrez_id"),
-                                                    CListLink(gene_node_2, CConceptNode("entrez:" + entrez2)))
+                                                    CListLink(gene_node_2, Entrez(entrez2)))
                         f.write(eval_ln_2.recursive_print() + "\n")
                         entrez.append(gene2)
 
@@ -132,9 +132,9 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                     if taxonomy_id_1 == 2697049:
                         covid_genes.append(gene1)
                         organism_ln_1 = CEvaluationLink(CPredicateNode("from_organism"), 
-                                        CListLink(gene_node_1, CConceptNode("ncbi:" + str(taxonomy_id_1))))
+                                        CListLink(gene_node_1, NcbiTaxonomy(str(taxonomy_id_1))))
                         organism_ln_2 = CEvaluationLink(CPredicateNode("from_organism"),
-                                        CListLink(prot_node_1, CConceptNode("ncbi:" + str(taxonomy_id_1))))
+                                        CListLink(prot_node_1, NcbiTaxonomy(str(taxonomy_id_1))))
                         f.write(organism_ln_1.recursive_print() + "\n")
                         f.write(organism_ln_2.recursive_print() + "\n")
                         if gene_level:
@@ -142,9 +142,9 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                     if taxonomy_id_2 == 2697049:
                         covid_genes.append(gene2)
                         organism_ln_1 = CEvaluationLink(CPredicateNode("from_organism"),
-                                                        CListLink(gene_node_2, CConceptNode("ncbi:" + str(taxonomy_id_2))))
+                                                        CListLink(gene_node_2, NcbiTaxonomy(str(taxonomy_id_2))))
                         organism_ln_2 = CEvaluationLink(CPredicateNode("from_organism"),
-                                                        CListLink(prot_node_2, CConceptNode("ncbi:" + str(taxonomy_id_2))))
+                                                        CListLink(prot_node_2, NcbiTaxonomy(str(taxonomy_id_2))))
                         f.write(organism_ln_1.recursive_print() + "\n")
                         f.write(organism_ln_2.recursive_print() + "\n")
                         if gene_level:

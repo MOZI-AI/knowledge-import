@@ -44,6 +44,8 @@ with open("dataset/codingRNA_{}.scm".format(str(date.today())), 'w') as f:
         if rna:
             trans = CEvaluationLink(CPredicateNode("translated_to"), CListLink(CRNANode(rna), ProteinNode(prot)))
             f.write(trans.recursive_print() + "\n")
+            expr = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(gene), ProteinNode(prot)))
+            f.write(expr.recursive_print() + "\n")
 
 version = dataset.split(".")[1]
 script = "https://github.com/MOZI-AI/knowledge-import/codingRNA.py"

@@ -124,6 +124,12 @@ class GoBPNode(CNode):
 class ChebiOntology(CNode):
     atom_type = 'ChebiOntology'
 
+class NcbiTaxonomy(CNode):
+    atom_type = 'NcbiTaxonomyNode'
+
+class Entrez(CNode):
+    atom_type = 'EntrezNode'
+
 class CSetLink(CLink):
     atom_type = 'SetLink'
 
