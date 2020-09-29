@@ -332,7 +332,7 @@ def parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemica
                     CPredicateNode("from_organism"),
                     CListLink (
                       CConceptNode(name),
-                      NcbiTaxonomy(str(organism))))
+                      NcbiTaxonomy("taxid:{}".format(str(organism)))))
             if tmp is not None:
                 tmp.append(ev)
     return elem_chemical_map.get(protein_elem_id, None)
