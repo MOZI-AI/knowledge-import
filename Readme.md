@@ -38,3 +38,5 @@ NOTE: For expermenting only on a gene-level, the following scripts generates onl
 - GO_Annotation_scm.py
 - SMPDB_pathway.py
 - PE_Identifier_mapping.py
+
+Atomese format description with links to source datasets https://docs.google.com/document/d/16zfY7OZtHO66mfujLdZ0-3VALXUTvxeeo4dW2ASBiNs
