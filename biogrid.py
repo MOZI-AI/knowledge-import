@@ -100,13 +100,13 @@ def import_data(data, source, version, gene_level=False, form='tab2'):
                 pairs[interactors].append(CConceptNode(pubmed_link))
 
                 if not node1 in entrez:
-                    entrez_1 = CConceptNode("entrez:" + str(data.iloc[i]['Entrez Gene Interactor A']))
+                    entrez_1 = Entrez(str(data.iloc[i]['Entrez Gene Interactor A']))
                     eval_ln = CEvaluationLink(CPredicateNode("has_entrez_id"), CListLink(gene_1, entrez_1))
                     f.write(eval_ln.recursive_print() + "\n")
                     entrez.append(node1)
 
                 if not node2 in entrez:
-                    entrez_2 = CConceptNode("entrez:" + str(data.iloc[i]['Entrez Gene Interactor B']))
+                    entrez_2 = Entrez(str(data.iloc[i]['Entrez Gene Interactor B']))
                     eval_ln = CEvaluationLink(CPredicateNode("has_entrez_id"), CListLink(gene_2, entrez_2))
                     f.write(eval_ln.recursive_print() + "\n")
                     entrez.append(node2)

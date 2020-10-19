@@ -21,6 +21,7 @@ def import_string():
         wget.download(mapping,"raw_data/")
     
     df_data = pd.read_csv("raw_data/9606.protein.actions.v11.0.txt.gz", dtype=str, sep="\t")
+    df_data = df_data.drop_duplicates(subset=['item_id_a', 'item_id_b', 'mode'], keep='first')
     df_data_symmetric = df_data[df_data['is_directional'] == "f"]
     df_data_asymmetric = df_data[df_data['is_directional'] == "t"]
     df_mapping = pd.read_csv("raw_data/human.uniprot_2_string.2018.tsv.gz", dtype=str, sep="\t", names=["code", "uniprot", "ensembl","num1","num2"])
@@ -56,6 +57,7 @@ def import_string():
     
         Keep symmetric relations and ignore if the same relation happens to be asymmetric
     """
+    interaction_modes = ["catalysis","inhibition","expression","activation","binding","reaction","ptmod"]
     symmetric = {}
     if not os.path.exists(os.path.join(os.getcwd(), 'string_dataset')):
         os.makedirs('string_dataset')
@@ -65,6 +67,8 @@ def import_string():
                 prot1 = df_data_symmetric.iloc[i]['item_id_a']
                 prot2 = df_data_symmetric.iloc[i]['item_id_b']
                 mode = df_data_symmetric.iloc[i]['mode']
+                if not mode in interaction_modes:
+                    continue
                 score = int(df_data_symmetric.iloc[i]['score'])               
 
                 if prot1 in mapping_dict.keys() and prot2 in mapping_dict.keys():
@@ -83,9 +87,9 @@ def import_string():
                 gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
                 stv = "(stv {} {})".format(1.0, score/1000)
 
-                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(protein1, protein2), stv=stv)) + "\n")
-                f.write(str(CEvaluationLink(CPredicateNode(mode), CSetLink(gene1, gene2), stv=stv)) + "\n")
-                symmetric[gene1 + gene2] = mode
+                f.write(CEvaluationLink(CPredicateNode(mode), CSetLink(protein1, protein2), stv=stv).recursive_print() + "\n")
+                g.write(CEvaluationLink(CPredicateNode(mode), CSetLink(gene1, gene2), stv=stv).recursive_print() + "\n")
+                symmetric[gene1.name + gene2.name] = mode
 
             except Exception as e:
                 print(e)
@@ -94,6 +98,8 @@ def import_string():
                 prot1 = df_data_asymmetric.iloc[i]['item_id_a']
                 prot2 = df_data_asymmetric.iloc[i]['item_id_b']
                 mode = df_data_asymmetric.iloc[i]['mode']
+                if not mode in interaction_modes:
+                    continue
                 a_is_acting = df_data_asymmetric.iloc[i]['a_is_acting'] 
                 score = int(df_data_asymmetric.iloc[i]['score'])               
 
@@ -113,13 +119,13 @@ def import_string():
                 gene2 = CGeneNode(prot2.split("|")[1].split("_")[0].upper())
                 stv = "(stv {} {})".format(1.0, score/1000)
 
-                if not (gene1+gene2 in symmetric.keys() and symmetric[gene1+gene2] == mode):
+                if not (gene1.name + gene2.name in symmetric.keys() and symmetric[gene1.name + gene2.name] == mode):
                     if a_is_acting is "t": 
-                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein1, protein2), stv=stv)) + "\n")
-                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene1, gene2), stv=stv)) + "\n")
+                        f.write(CEvaluationLink(CPredicateNode(mode), CListLink(protein1, protein2), stv=stv).recursive_print() + "\n")
+                        g.write(CEvaluationLink(CPredicateNode(mode), CListLink(gene1, gene2), stv=stv).recursive_print() + "\n")
                     else:
-                        f.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(protein2, protein1), stv=stv)) + "\n")
-                        g.write(str(CEvaluationLink(CPredicateNode(mode), CListLink(gene2, gene1), stv=stv)) + "\n")
+                        f.write(CEvaluationLink(CPredicateNode(mode), CListLink(protein2, protein1), stv=stv).recursive_print() + "\n")
+                        g.write(CEvaluationLink(CPredicateNode(mode), CListLink(gene2, gene1), stv=stv).recursive_print() + "\n")
 
             except Exception as e:
                 print(e)

@@ -39,12 +39,20 @@ class CLink(CAtom):
         return '({0} {1})'.format(self.atom_type, outgoing)
 
     def recursive_print(self, result='', indent=''):
-        result += indent + '({0}'.format(self.atom_type)
-        indent = indent + '    '
-        for x in self.outgoing:
-            result = x.recursive_print(result + '\n', indent)
-        result += ')'
-        return result
+        if self.stv is not None:
+            result += indent + '({0} {1}'.format(self.atom_type, self.stv)
+            indent = indent + '    '
+            for x in self.outgoing:
+                result = x.recursive_print(result + '\n', indent)
+            result += ')'
+            return result
+        else:
+            result += indent + '({0}'.format(self.atom_type)
+            indent = indent + '    '
+            for x in self.outgoing:
+                result = x.recursive_print(result + '\n', indent)
+            result += ')'
+            return result
 
 
 class CEvaluationLink(CLink):
@@ -114,10 +122,10 @@ class CInheritanceLink(CLink):
     atom_type = 'InheritanceLink'
 
 class CRNANode(CNode):
-    atom_type = 'CodingRnaNode'
+    atom_type = 'EnstNode'
 
 class NcRNANode(CNode):
-    atom_type = 'NonCodingRnaNode'
+    atom_type = 'RefseqNode'
 
 class ChebiNode(CNode):
     atom_type = 'ChebiNode'
@@ -134,6 +142,9 @@ class ReactomeNode(CNode):
 class SMPNode(CNode):
     atom_type = 'SmpNode'
 
+class PharmGkbNode(CNode):
+    atom_type = 'PharmGkbNode'
+
 class CelltypeNode(CNode):
     atom_type = 'CellNode'
 
@@ -148,6 +159,15 @@ class GoMFNode(CNode):
 
 class GoBPNode(CNode):
     atom_type = 'BiologicalProcessNode'
+
+class ChebiOntology(CNode):
+    atom_type = 'ChebiOntology'
+
+class NcbiTaxonomy(CNode):
+    atom_type = 'NcbiTaxonomyNode'
+
+class Entrez(CNode):
+    atom_type = 'EntrezNode'
 
 class CSetLink(CLink):
     atom_type = 'SetLink'

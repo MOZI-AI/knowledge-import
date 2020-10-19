@@ -15,6 +15,7 @@ from gzip import GzipFile
 from io import BytesIO
 import pandas
 from atomwrappers import *
+import find_gons
 
 
 chebi_re = re.compile(".*ChEBI:CHEBI:(\d+).*")
@@ -64,11 +65,20 @@ def pharma_to_id(chem_table, name):
         print("Not found pubchem or chebi id for {0}".format(name))
     return chemical_id
 
-
+def find_mol_type(mol):
+  if "CHEBI:" in mol.upper():
+    mol_type = ChebiNode(mol)
+  elif "PubChem:" in mol or "PubChemSID" in mol:
+    mol_type = PubchemNode(mol)
+  elif "Uniprot:" in mol:
+    mol_type = ProteinNode(mol.split(":")[-1])
+  else:
+    mol_type = CMoleculeNode(mol)
+  return mol_type
 
 def gen_gene_member(gene, pathway_id, organism=None):
     result = []
-    member = CMemberLink(CGeneNode(gene), CConceptNode(pathway_id))
+    member = CMemberLink(CGeneNode(gene), PharmGkbNode(pathway_id))
     result.append(member)
     if organism is not None:
         org_link = CMemberLink(CGeneNode(gene), CConceptNode("oranism:NCBI{0}".format(organism)))
@@ -128,9 +138,9 @@ def gen_proteins(pharma_id, name, pathway_id, pharma2uniprot):
             continue
         for i in range(len(entry)):
             prot_id = entry.iloc[i].Entry
-            molecule = CMoleculeNode('Uniprot:{0}'.format(prot_id))
+            molecule = find_mol_type('Uniprot:{0}'.format(prot_id))
             member = CMemberLink(molecule,
-                                CConceptNode(pathway_id))
+                                PharmGkbNode(pathway_id))
             tmp.append(member)
             proteins.append(molecule)
     return tmp, proteins
@@ -138,7 +148,7 @@ def gen_proteins(pharma_id, name, pathway_id, pharma2uniprot):
 
 def gen_location(protein_node, location_node, pathway_id):
     return CContextLink(CMemberLink(protein_node,
-                                    CConceptNode(pathway_id)),
+                                    PharmGkbNode(pathway_id)),
                CEvaluationLink(CPredicateNode("has_location"),
                                CListLink(protein_node,
                                          location_node)))
@@ -151,7 +161,8 @@ def generate_locations(elem, ns, chemical_nodes, pathway_id):
                match = go_location_re.match(location) 
                if match:
                    go_location = match.group(1)
-                   location_node = CConceptNode(go_location)
+                   go_type = find_gons.find_go_type(go_location)
+                   location_node = go_type if go_type else CConceptNode(go_location)
                    for chemical_node in chemical_nodes:
                        context = gen_location(chemical_node, location_node, pathway_id)
                        result.append(context)
@@ -239,21 +250,21 @@ def process_small_molecules(pathway, ns, pathway_id, chem_data, id_map, pharma2c
         molecule = None
         for db_name in ('ChEBI', 'PubChem', 'DrugBank'):
             if db_name in molecule_drug:
-                name_node = CMoleculeNode("{0}:{1}".format(db_name, molecule_drug[db_name]))
+                name_node = find_mol_type("{0}:{1}".format(db_name, molecule_drug[db_name]))
                 ctx = CMemberLink(
                     CEvaluationLink(
                             CPredicateNode("has_{0}_id".format(db_name.lower())),
-                            CListLink(CMoleculeNode(name),
+                            CListLink(find_mol_type(name),
                                       name_node))
-                        ,CConceptNode(pathway_id))
+                        ,PharmGkbNode(pathway_id))
                 if molecule is None:
                     molecule = name_node
                 tmp.append(ctx)
 
         if molecule is None:
-            molecule = CMoleculeNode(name)
+            molecule = find_mol_type(name)
         member = CMemberLink(molecule,
-                    CConceptNode(pathway_id))
+                    PharmGkbNode(pathway_id))
 
         tmp.append(member)
         id_map[about(smallmolecule, ns)] = [molecule]
@@ -321,7 +332,7 @@ def parse_protein(protein, pathway, ns, pathway_id, pharma2uniprot, elem_chemica
                     CPredicateNode("from_organism"),
                     CListLink (
                       CConceptNode(name),
-                      CConceptNode("ncbi:{0}".format(organism))))
+                      NcbiTaxonomy("taxid:{}".format(str(organism)))))
             if tmp is not None:
                 tmp.append(ev)
     return elem_chemical_map.get(protein_elem_id, None)
@@ -382,7 +393,7 @@ def gen_interaction(interaction, pathway, pathway_id, ns, id_map, interaction_na
                         wrap_list(right_mol)))
         result.append(CMemberLink(
                         ev,
-                        CConceptNode(pathway_id)))
+                        PharmGkbNode(pathway_id)))
     if not result:
         print("failed to parse {0}".format(about(interaction, ns)))
     id_map[about(interaction, ns)] = [] if ev is None else [ev]
@@ -467,7 +478,7 @@ def parse_control(control, pathway, ns, pathway_id, id_map):
                         wrap_list(controlled)))
         tmp.append(ev)
         ctx = CMemberLink(ev,
-                   CConceptNode(pathway_id))
+                   PharmGkbNode(pathway_id))
         result.append(ctx)
     id_map[about(control, ns)] = tmp
     return result
@@ -494,7 +505,7 @@ def parse_catalysis(element, pathway, ns, pathway_id, id_map):
                     CListLink(cont,
                         wrap_list(controlled)))
         result.append(
-            CMemberLink(res,CConceptNode(pathway_id)))
+            CMemberLink(res,PharmGkbNode(pathway_id)))
         id_map[about(element, ns)] = [res]
     else:
         id_map[about(element, ns)] = []
@@ -511,9 +522,9 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
         return id_map[about(elem, ns)]
     if elem.tag.endswith('Complex'):
         name = elem.find('./bp:standardName', ns).text
-        node = CMoleculeNode(name)
+        node = find_mol_type(name)
         member = CMemberLink(node,
-                        CConceptNode(pathway_id))
+                        PharmGkbNode(pathway_id))
         for comp in elem.findall('./bp:component', ns):
             elem_comp = find_about_element(pathway, ns, resource(comp, ns))
             for ref in id_map[about(elem_comp, ns)]:
@@ -525,9 +536,10 @@ def parse_elem(elem, pathway, ns, pathway_id, id_map):
         id_map[about(elem, ns)] = []
     elif elem.tag.endswith('Pathway'):
         name = elem.find('./bp:standardName', ns).text
-        result.append(CInheritanceLink(CConceptNode(name), CConceptNode('pathway')))
-        result.append(CMemberLink(CConceptNode(name), CConceptNode(pathway_id)))
-        id_map[about(elem, ns)] = [CConceptNode(name)]
+        name = PharmGkbNode(name) if name.startswith("PA") else CConceptNode(name) 
+        result.append(CInheritanceLink(name, CConceptNode('pathway')))
+        result.append(CMemberLink(name, PharmGkbNode(pathway_id)))
+        id_map[about(elem, ns)] = [name]
         return result
     elif elem.tag.endswith('Dna') or elem.tag.endswith('Rna'):
         print("Dna and Rna as component of interaction is not supported: {0}".format(about(elem, ns)))
@@ -585,10 +597,11 @@ def parse_location(element, pathway, ns):
     match = go_location_re.match(xref)
     if match is not None:
         xref = go_location_re.match(xref).group(1)
+    node = find_gons.find_go_type(xref) if "GO:" in xref else CConceptNode(xref)
     ev = CEvaluationLink(
             CPredicateNode('has_name'),
             CListLink(
-                CConceptNode(xref),
+                node,
                 CConceptNode(term)))
     result.append(ev)
     return result, CConceptNode(term)
@@ -643,7 +656,7 @@ def transport_with_transport_protein(pathway_id, pathway, interaction, left_elem
     tmp.append(ev)
     id_map[about(interaction, ns)] = tmp
     member = CMemberLink(ev,
-                         CConceptNode(pathway_id))
+                         PharmGkbNode(pathway_id))
     result += [member]
     return result
 
@@ -695,7 +708,7 @@ def parse_transport(interaction, pathway, ns, pathway_id, id_map):
                     left_xref,
                     right_xref))
             member = CMemberLink(ev,
-                                 CConceptNode(pathway_id))
+                                 PharmGkbNode(pathway_id))
             result += [member]
             tmp.append(ev)
     except ParseError as e:
@@ -752,11 +765,11 @@ def convert_pathway(pathway, chem_data, genes_data, pharma2uniprot, pathway_id, 
     print("processing pathway {0} {1}".format(pathway_id, pathway_name))
     ev_name = CEvaluationLink(
                  CPredicateNode("has_name"),
-                 CListLink(CConceptNode(pathway_id),
+                 CListLink(PharmGkbNode(pathway_id),
                            CConceptNode(pathway_name)))
     tmp = [ev_name]
     tmp.append(CInheritanceLink(
-                  CConceptNode(pathway_id),
+                  PharmGkbNode(pathway_id),
                   CConceptNode('pathway')))
     id_map = dict()
     tmp += process_proteins(pathway, ns, pathway_id, genes_data, pharma2uniprot, id_map)

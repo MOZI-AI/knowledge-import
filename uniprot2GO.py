@@ -15,16 +15,16 @@ from atomwrappers import *
 import json
 import find_gons
 
-dataset_url = "http://current.geneontology.org/annotations/goa_human_isoform.gaf.gz"
+dataset_url = "http://current.geneontology.org/annotations/goa_human.gaf.gz"
 lines = []
 prot = []
 go = []
-if not os.path.isfile('raw_data/goa_human_isoform_valid.gaf'):
+if not os.path.isfile('raw_data/goa_human.gaf.gz'):
     print("Downloading dataset")
     lines = gzip.open(wget.download(dataset_url, "raw_data/")).readlines()
     lines = [l.decode("utf-8") for l in lines]
 else:
-    lines = open('raw_data/goa_human_isoform_valid.gaf').readlines()
+    lines = open('raw_data/goa_human.gaf.gz').readlines()
 
 with open("raw_data/go-namespace.json", "r") as ns:
     go_namespace = json.load(ns)
@@ -37,7 +37,7 @@ with open("dataset/uniprot2GO_{}.scm".format(str(date.today())), 'w') as f:
             go_namespace, go_term = find_gons.find_type(i.split('\t')[4], go_namespace)
             protein = ProteinNode(i.split('\t')[1])
             if go_term:
-                f.write(CInheritanceLink(protein,go_term).recursive_print() + "\n")
+                f.write(CMemberLink(protein,go_term).recursive_print() + "\n")
             prot.append(i.split('\t')[1])
             go.append(go_term)
 

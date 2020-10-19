@@ -38,14 +38,14 @@ else:
                 p = data.iloc[i]['uniprot'].strip()
                 genes.append(g)
                 prot.append(p)
-                expresion = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(g),ProteinNode(p)))
-                f.write(expresion.recursive_print())
+                expresion = CEvaluationLink(CPredicateNode("expresses"), CListLink(CGeneNode(g.upper()),ProteinNode(p)))
+                f.write(expresion.recursive_print() + "\n")
             except:
                 continue
             if not math.isnan(data.iloc[i]['entrez']):
                 entrez_id = str(int(data.iloc[i]['entrez']))
-                has_entrez = CEvaluationLink(CPredicateNode("has_entrez_id"), CListLink(CGeneNode(g),CConceptNode("entrez:"+entrez_id)))
-                f.write(has_entrez.recursive_print())
+                has_entrez = CEvaluationLink(CPredicateNode("has_entrez_id"), CListLink(CGeneNode(g.upper()),Entrez(entrez_id)))
+                f.write(has_entrez.recursive_print() + "\n")
 
         metadata.update_meta("gene2proteinMapping:latest", 
         "entrez2uniprot.csv",script,genes=len(set(genes)),prot=len(set(prot)))

@@ -29,13 +29,13 @@ with open("dataset/noncodingRNA_{}.scm".format(str(date.today())), 'w') as f:
     for i in range(len(data)):
         rna = data.iloc[i]["product_accession"].split(".")[0]
         if rna.split("_")[0] in ["NR", "XR"]:
-            gene = data.iloc[i]["symbol"].strip()
+            gene = data.iloc[i]["symbol"].strip().upper()
             name = data.iloc[i]["name"]
             rnas.append(rna)
             genes.append(gene)
             transc = CEvaluationLink(CPredicateNode("transcribed_to"), CListLink(CGeneNode(gene),NcRNANode(rna)))
             transc_name = CEvaluationLink(CPredicateNode("has_name"), CListLink(NcRNANode(rna), CConceptNode("name")))
-            f.write(transc.recursive_print() + "\n" + transc_name.recursive_print())
+            f.write(transc.recursive_print() + "\n" + transc_name.recursive_print() + "\n")
 
 version = dataset.split(".")[1]
 script = "https://github.com/MOZI-AI/knowledge-import/noncodingRNA.py"
