@@ -4,6 +4,7 @@ Classes to generate atomese without working with atomspace
 __author__ = "Anatoly Belikov"
 __email__ = "abelikov@singularitynet.io"
 
+from current_symbols import *
 
 class CAtom:
     def __hash__(self):
@@ -16,6 +17,8 @@ class CNode(CAtom):
         self.name = name
 
     def __str__(self):
+        if self.atom_type == "GeneNode":
+            self.name = get_current_symbol(self.name)
         return '({0} "{1}")'.format(self.atom_type, self.name.replace('"', '\\"')) 
 
     def recursive_print(self, result='', indent=''):
