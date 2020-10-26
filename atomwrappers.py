@@ -17,8 +17,6 @@ class CNode(CAtom):
         self.name = name
 
     def __str__(self):
-        if self.atom_type == "GeneNode":
-            self.name = get_current_symbol(self.name)
         return '({0} "{1}")'.format(self.atom_type, self.name.replace('"', '\\"')) 
 
     def recursive_print(self, result='', indent=''):
@@ -77,7 +75,9 @@ class CListLink(CLink):
     atom_type = 'ListLink'
 
 class CGeneNode(CNode):
-    atom_type = 'GeneNode'
+    def __init__(self, name):
+        self.name = get_current_symbol(name)
+        self.atom_type = 'GeneNode'
 
 class CContextLink(CLink):
     atom_type = 'ContextLink'
