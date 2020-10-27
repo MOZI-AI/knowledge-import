@@ -4,6 +4,7 @@ Classes to generate atomese without working with atomspace
 __author__ = "Anatoly Belikov"
 __email__ = "abelikov@singularitynet.io"
 
+from current_symbols import *
 
 class CAtom:
     def __hash__(self):
@@ -74,7 +75,9 @@ class CListLink(CLink):
     atom_type = 'ListLink'
 
 class CGeneNode(CNode):
-    atom_type = 'GeneNode'
+    def __init__(self, name):
+        self.name = get_current_symbol(name)
+        self.atom_type = 'GeneNode'
 
 class CContextLink(CLink):
     atom_type = 'ContextLink'
