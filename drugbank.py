@@ -141,7 +141,6 @@ for drug_tag in xml_root:
   out_fp.write(evalink.recursive_print() + "\n")
 
   if description != None:
-    description = description.replace("\"", "\\\"").strip()
     evalink = CEvaluationLink(CPredicateNode("has_description"), CListLink(standard_id, CConceptNode(description)))
     out_fp.write(evalink.recursive_print() + "\n")
 
@@ -170,7 +169,7 @@ for drug_tag in xml_root:
     # For some reason a few of them are not in the 'full database' file?
     if other_drug_standard_id == None:
       other_drug_standard_id = other_drug_drugbank_id
-    
+
     other_drug_standard_id = find_mol_type(other_drug_standard_id)
     evalink = CEvaluationLink(CPredicateNode("interacts_with"), CListLink(standard_id, other_drug_standard_id))
     out_fp.write(evalink.recursive_print() + "\n")
@@ -184,10 +183,10 @@ for drug_tag in xml_root:
       # For some reason a few of them are not in the 'full database' file?
       if involved_drug_standard_id == None:
         involved_drug_standard_id = involved_drug_drugbank_id
-      
+
       involved_drug_standard_id = find_mol_type(involved_drug_standard_id)
       memberlink = CMemberLink(involved_drug_standard_id, SMPNode(smpdb_id))
-      out_fp.write(memberlink.recursive_print() + "\n") 
+      out_fp.write(memberlink.recursive_print() + "\n")
 
     for uniprot_id_tag in findall_tag(find_tag(pathway_tag, "enzymes"), "uniprot-id"):
       uniprot_id = uniprot_id_tag.text
