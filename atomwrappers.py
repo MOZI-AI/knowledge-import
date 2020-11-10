@@ -58,11 +58,32 @@ class CLink(CAtom):
 class CEvaluationLink(CLink):
     atom_type = 'EvaluationLink'
 
+class CExecutionLink(CLink):
+    atom_type = 'ExecutionLink'
+
+class CLazyExecutionOutputLink(CLink):
+    atom_type = 'LazyExecutionOutputLink'
+
+class CQuantitativePredicateLink(CLink):
+    atom_type = 'QuantitativePredicateLink'
+
 class CPredicateNode(CNode):
     atom_type = 'PredicateNode'
 
+class CSchemaNode(CNode):
+    atom_type = 'SchemaNode'
+
+class CQuantitativeSchemaNode(CNode):
+    atom_type = 'QuantitativeSchemaNode'
+
+class CQuantitativePredicateNode(CNode):
+    atom_type = 'QuantitativePredicateNode'
+
 class CConceptNode(CNode):
     atom_type = 'ConceptNode'
+
+class CNumberNode(CNode):
+    atom_type = 'NumberNode'
 
 class CMoleculeNode(CNode):
     atom_type = 'MoleculeNode'
