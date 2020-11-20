@@ -54,8 +54,8 @@ def create_member_ln(gene, fp):
 def import_gene_expr(patient_df, overexpr_fp, underexpr_fp):
     df = patient_df.dropna(axis=1, how='all')
     mean_dict = {}
-    goi = ["ERBB2", "GATA3", "TP53", "MKI67", "PIK3C3", "FOXA1", "BRCA2", "BRCA1"]
-    for col in df.loc[:, goi]:
+    for col in df.columns.values:
+        if col == "patient_ID": continue
         mean_dict[str(col)] = df[col].median()
 
     for i in range(df.shape[0]):
