@@ -166,3 +166,9 @@ fabric.properties
 .idea/misc.xml
 .idea/modules.xml
 .idea/vcs.xml
+
+.DS_Store
+
+.vscode/
+
+cancer/dataset
