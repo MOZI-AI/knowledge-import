@@ -89,21 +89,6 @@ class CNumberNode(CNode):
 class CMoleculeNode(CNode):
     atom_type = 'MoleculeNode'
 
-class CRnaNode(CNode):
-    atom_type = 'RnaNode'
-
-class CPubchemNode(CNode):
-    atom_type = 'PubchemNode'
-
-class CPathwayNode(CNode):
-    atom_type = 'PathwayNode'
-
-class CReactomePathway(CNode):
-    atom_type = 'ReactomePathway'
-
-class CSmpPathway(CNode):
-    atom_type = 'SmpPathway'
-
 class CMemberLink(CLink):
     atom_type = 'MemberLink'
 
