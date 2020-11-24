@@ -9,7 +9,7 @@ from atomwrappers import *
 from pharmagkb import build_request
 
 gene_dict = {"p53_mutation": "TP53",  "PTEN_pos": "PTEN", "cytokeratin5_pos": "CK5"}
-bool_vals = ["ER_preTrt", "ER_expr_preTrt", "ESR1_preTrt", "ERbb2_preTrt", "Erbeta_preTrt", "ERBB2_CPN_amplified", "PR_preTrt", "PR_expr_preTrt" ,"HER2_preTrt", "HER2_expr_preTrt", "p53_mutation", "p53", "PIK3CA_mutation", "PTEN_pos" "PTEN_mutation", "cytokeratin5_pos" ,"family_history"]
+bool_vals = ["ER_preTrt", "ER_expr_preTrt", "ESR1_preTrt", "ERbb2_preTrt", "Erbeta_preTrt", "ERBB2_CPN_amplified", "PR_preTrt", "PR_expr_preTrt" ,"HER2_preTrt", "HER2_expr_preTrt", "p53_mutation", "p53", "PIK3CA_mutation", "PTEN_pos", "PTEN_mutation", "cytokeratin5_pos" ,"family_history"]
 
 non_bool_vals = ["biopsy_preTreat", "tumor_size_cm_preTrt_preSurgery", "tumor_size_cm_secondAxis_preTrt_preSurgery", "tumor_size_cm_preTrt_preSurgeryMin", "clinical_AJCC_stage", "clinical_AJCC_stageRangeMin", "clinical_AJCC_stageRangeMax", "preTrt_lymph_node_status", "preTrt_totalLymphNodes", "preTrt_numPosLymphNodes", "preTrt_numPosLymphNodesRemoved", "preTrt_posDichLymphNodes", "notthingham_prognostic_index", "tumor_stage_preTrt", "tumor_stage_preTrtMin", "tumor_stage_preTrtMax", "pam50", "hist_grade", "hist_gradeMax", "hist_gradeMin", "nuclear_grade_preTrt", "path_diagnosis", "path", "chemosensitivity_prediction", "metastasis_stage_preTrt", "ER_percentage_preTrt", "ER_fmolmg_preTrt", "PR_percentage_preTrt", "PR_fmolmg_preTrt", "HER2_IHC_score_preTrt", "HER2_fish_cont_score_preTrt", "HER2_SNP6_state", "p53_mutation_type", "ploidy", "top2atri_preTrt", "topoihc_preTrt", "S_phase", "DNA_index"]
 
