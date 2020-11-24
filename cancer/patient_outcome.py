@@ -150,8 +150,6 @@ def import_data():
     else:
         outfile = "patient_data.scm"
 
-    clinical_df = clinical_df.dropna(axis=1, how='all') #Remove columns that have null for all values
-
     with open(outfile, "w") as f:
         import_info(clinical_df, drug_df, f)
 
