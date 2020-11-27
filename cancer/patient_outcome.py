@@ -66,7 +66,6 @@ def create_treatment_ln(patient, treatment, value, drugs_df, fp):
     """
     if not pd.isna(value) and value != 0:
         if treatment == "surgery_type":
-            eval_ln = CEvaluationLink(CPredicateNode("surgery"), CListLink(patient, CConceptNode(treatment)), stv=CStv(1.0, 1.0))
             surgery_type_ln = CEvaluationLink(CPredicateNode("surgery_type"), CListLink(patient, CConceptNode(value)), stv=CStv(1.0, 1.0))
             fp.write(surgery_type_ln.recursive_print() + "\n")
         else:
@@ -103,7 +102,7 @@ def import_info(df, drugs_df, fp):
     treatment_cols.append('surgery_type')
 
     for i in range(df.shape[0]):
-        patient = CConceptNode(str(df.iloc[i]["patient_ID"]))
+        patient = CPatientNode(str(df.iloc[i]["patient_ID"]))
         for marker in bool_vals:
             create_state_ln(patient, marker, df.iloc[i][marker], fp)
 

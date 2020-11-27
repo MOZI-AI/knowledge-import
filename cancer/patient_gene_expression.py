@@ -59,7 +59,7 @@ def import_gene_expr(patient_df, overexpr_fp, underexpr_fp):
         mean_dict[str(col)] = df[col].median()
 
     for i in range(df.shape[0]):
-        patient = CConceptNode(str(int(df.iloc[i]["patient_ID"])))
+        patient = CPatientNode(str(int(df.iloc[i]["patient_ID"])))
         for k in mean_dict:
             create_member_ln(k, overexpr_fp)
             create_member_ln(k, underexpr_fp)
