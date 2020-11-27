@@ -151,6 +151,9 @@ class ChebiOntology(CNode):
 class NcbiTaxonomy(CNode):
     atom_type = 'NcbiTaxonomyNode'
 
+class CPatientNode(CNode):
+    atom_type = 'PatientNode'
+
 class Entrez(CNode):
     atom_type = 'EntrezNode'
 
